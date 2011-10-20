@@ -52,14 +52,23 @@ class TestSyncApp(unittest.TestCase):
         self.app.post('/verify', login_data, status=400)
 
 
-        # looking good
+        # looking good, but bad assertion
         login_data = {'assertion': 'blah', 'audience': 'bouh'}
         resp = self.app.post('/verify', login_data)
         res = resp.json
 
         # checking the result
+        self.assertEqual(res['status'], 'failed')
+
+        # looking good
+        login_data = {'assertion': 'a=blah?bli',
+                      'audience': 'blah?bli'}
+        resp = self.app.post('/verify', login_data)
+        res = resp.json
+
+        # checking the result
         self.assertEqual(res['status'], 'okay')
-        self.assertEqual(res['audience'], 'bouh')
-        self.assertEqual(res['email'], 'blah')
+        self.assertEqual(res['audience'], 'blah?bli')
+        self.assertEqual(res['email'], 'a=blah')
         self.assertTrue(res['valid-until'] > time.time())
         self.assertTrue(res['issuer'], 'browserid.org')
