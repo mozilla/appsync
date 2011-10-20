@@ -1,6 +1,5 @@
 import os
 import unittest
-import json
 import time
 
 from webtest import TestApp
@@ -51,7 +50,6 @@ class TestSyncApp(unittest.TestCase):
         login_data = {'audience': 'blah'}
         self.app.post('/verify', login_data, status=400)
 
-
         # looking good, but bad assertion
         login_data = {'assertion': 'blah', 'audience': 'bouh'}
         resp = self.app.post('/verify', login_data)
@@ -72,3 +70,71 @@ class TestSyncApp(unittest.TestCase):
         self.assertEqual(res['email'], 'a=blah')
         self.assertTrue(res['valid-until'] > time.time())
         self.assertTrue(res['issuer'], 'browserid.org')
+
+        """
+        After authenticating with the server and getting back the URL of the
+        collection, request:
+
+            GET {collection}?since={timestamp}
+
+        `since` is optional; on first sync is should be empty or left off. The
+        server will return an object:
+
+            { until: timestamp,
+              incomplete: bool, applications: {origin: {...},
+                                                        ...} }
+
+        The response may not be complete if there are too many applications.
+        If this is the case then `incomplete` will be true (it may be left out
+        if
+        the response is complete).  Another request using `since={until}` will
+        get further applications (this may need to be repeated many times).
+
+        The client should save the value of `until` and use it for subsequent
+        requests.
+
+        In the case of no new items the response will be only
+        `{until: timestamp}`.
+
+        The client should always start with this GET request and only then send
+        its own updates.  It should ensure that its local timestamp is
+        sensible in comparison to the value of `until`.
+
+        Applications returned may be older than the local applications, in that
+        case then the client should ignore the server's application and use
+        its local copy, causing an overwrite.  The same is true for deleted
+        applications; if the local installed copy has a `last_modified` date
+        newer than the deleted server instance then the server instance
+        should be ignored (the user reinstalled an application).
+
+        **NOTE:** there are some conflicts that may occur, specifically
+        receipts should be merged.
+
+        When an application is added from the server the client should
+        *locally* set `app.sync` to true (this is in the [application
+        representation]
+        (https://developer.mozilla.org/en/OpenWebApps/The_JavaScript_API
+        #Application_Representation), not the manifest).
+
+        You must always retain `last_modified` as you received it from
+        the server (unless you ignore the application in favor of a
+        newer local version).
+        """
+        # getting the collection 'blah'
+        data = self.app.get('/collections/tarek/blah').json
+
+        # what did we get ?
+        self.assertTrue(data['until'] <= time.time())
+        self.assertEqual(data['since'], 0)
+        self.assertEqual(len(data['applications']), 0)
+
+        # getting the collection 'blah' since 5 min ago
+        since = time.time() - 300
+        data2 = self.app.get('/collections/tarek/blah?since=%s' % since).json
+
+        # what did we get ?
+        self.assertTrue(data2['until'] <= time.time())
+
+        # XXX we need to use Decimal everywhere on server-side
+        self.assertTrue(since - data2['since'] < 0.2)
+        self.assertEqual(len(data['applications']), 0)
