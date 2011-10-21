@@ -3,7 +3,8 @@ from webob.exc import HTTPBadRequest
 import time
 import re
 
-from appsync.backend import get_applications, add_application
+from appsync.application import get_applications, add_application
+from appsync.session import get_session, set_session
 
 
 _DOMAIN = 'browserid.org'
@@ -11,6 +12,7 @@ _OK = 'okay'
 _KO = 'failed'
 _VALIDITY_DURATION = 1000
 _ASSERTION_MATCH = re.compile('a=(.*)')
+_SESSION_DURATION = 300
 
 
 #
@@ -19,6 +21,7 @@ _ASSERTION_MATCH = re.compile('a=(.*)')
 verify = Service(name='verify', path='/verify')
 
 
+## XXX use Ryan's browser id pyramid plugin
 @verify.post()
 def verify(request):
     data = request.POST
@@ -36,7 +39,8 @@ def verify(request):
 
     assertion = assertion.split('?')[0]
 
-    # XXX push something into some session
+    # create a new session for the given user
+    set_session('tarek')  # XXX
 
     return {'status': _OK,
             'email': assertion,
@@ -48,23 +52,36 @@ def verify(request):
 #
 # GET/POST for the collections data
 #
+
+def _check_session(request):
+    """Controls if the user has a session"""
+    # need to add auth here XXX
+    # XXX need to make sure this user == the authenticated user
+    user = request.matchdict['user']
+    collection = request.matchdict['collection']
+
+    session = get_session(user)
+    if session is None:
+        # XXX return something useful
+        raise HTTPBadRequest()
+
+    return user, collection, session
+
+
 data = Service(name='data', path='/collections/{user}/{collection}')
 
 
 @data.get()
 def get_data(request):
+    user, collection, session = _check_session(request)
+
     # we should use decimals everywhere XXX
-    #
-    # XXX need to control the session here
     try:
         since = request.GET.get('since', '0')
         since = float(since)
     except TypeError:
         raise HTTPBadRequest()
 
-    # XXX need to make sure this user == the authenticated user
-    user = request.matchdict['user']
-    collection = request.matchdict['collection']
 
     res = {'since': since,
            'until': time.time(),
@@ -80,15 +97,12 @@ def get_data(request):
 
 @data.post()
 def post_data(request):
+    user, collection, session = _check_session(request)
     server_time = time.time()
     try:
         apps = request.json_body
     except ValueError:
         raise HTTPBadRequest()
-
-    # XXX need to make sure this user == the authenticated user
-    user = request.matchdict['user']
-    collection = request.matchdict['collection']
 
     # XXX what about sending back a partial report if some
     # apps are not compliant
