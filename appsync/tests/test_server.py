@@ -1,7 +1,7 @@
 import os
 import unittest
 import time
-
+import json
 from webtest import TestApp
 from appsync import main
 
@@ -75,7 +75,7 @@ class TestSyncApp(unittest.TestCase):
         After authenticating with the server and getting back the URL of the
         collection, request:
 
-            GET {collection}?since={timestamp}
+            GET /collections/{user}/{collection}?since=timestamp
 
         `since` is optional; on first sync is should be empty or left off. The
         server will return an object:
@@ -138,3 +138,18 @@ class TestSyncApp(unittest.TestCase):
         # XXX we need to use Decimal everywhere on server-side
         self.assertTrue(since - data2['since'] < 0.2)
         self.assertEqual(len(data['applications']), 0)
+
+        # ok let's put some data up
+        app1 = {'last_modified': time.time()}
+        app2 = {'last_modified': time.time()}
+
+        apps = json.dumps([app1, app2])
+        res = self.app.post('/collections/tarek/blah', params=apps)
+
+        # see if we got them
+        data = self.app.get('/collections/tarek/blah').json
+
+        # what did we get ?
+        self.assertTrue(data['until'] <= time.time())
+        self.assertEqual(data['since'], 0)
+        self.assertEqual(len(data['applications']), 2)

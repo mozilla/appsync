@@ -3,7 +3,7 @@ from webob.exc import HTTPBadRequest
 import time
 import re
 
-from appsync.backend import get_applications
+from appsync.backend import get_applications, add_application
 
 
 _DOMAIN = 'browserid.org'
@@ -13,6 +13,9 @@ _VALIDITY_DURATION = 1000
 _ASSERTION_MATCH = re.compile('a=(.*)')
 
 
+#
+# /verify service, that adds a user session
+#
 verify = Service(name='verify', path='/verify')
 
 
@@ -42,6 +45,9 @@ def verify(request):
             'issuer': _DOMAIN}
 
 
+#
+# GET/POST for the collections data
+#
 data = Service(name='data', path='/collections/{user}/{collection}')
 
 
@@ -70,3 +76,29 @@ def get_data(request):
         res['applications'].append(app)
 
     return res
+
+
+@data.post()
+def post_data(request):
+    server_time = time.time()
+    try:
+        apps = request.json_body
+    except ValueError:
+        raise HTTPBadRequest()
+
+    # XXX need to make sure this user == the authenticated user
+    user = request.matchdict['user']
+    collection = request.matchdict['collection']
+
+    # XXX what about sending back a partial report if some
+    # apps are not compliant
+    failures = []
+
+    for app in apps:
+        try:
+            add_application(user, collection, app)
+        except Exception, e:
+            # failed for some reason
+            failures.append((app, str(e)))
+
+    return {'stamp': server_time}
