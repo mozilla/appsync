@@ -2,6 +2,7 @@ from cornice import Service
 from webob.exc import HTTPBadRequest
 import time
 import re
+import urllib
 
 from appsync.application import get_applications, add_application
 from appsync.session import get_session, set_session
@@ -22,6 +23,7 @@ verify = Service(name='verify', path='/verify')
 
 
 ## XXX use Ryan's browser id pyramid plugin
+## Note: this is the debugging/mock verification
 @verify.post()
 def verify(request):
     data = request.POST
@@ -33,20 +35,23 @@ def verify(request):
 
     # check if audience matches assertion
     res = _ASSERTION_MATCH.search(assertion)
-    if res is None or res.groups() != (audience,):
+    if res and res.group(1) != audience:
         return {'status': _KO,
                 'reason': 'audience does not match'}
 
     assertion = assertion.split('?')[0]
 
     # create a new session for the given user
-    set_session('tarek')  # XXX
+    set_session(assertion)  # XXX
+
+    collection_url = '/collections/%s/apps' % urllib.quote(assertion)
 
     return {'status': _OK,
             'email': assertion,
             'audience': audience,
             'valid-until': time.time() + _VALIDITY_DURATION,
-            'issuer': _DOMAIN}
+            'issuer': _DOMAIN,
+            'collection_url': request.application_url + collection_url}
 
 
 #
@@ -115,4 +120,4 @@ def post_data(request):
             # failed for some reason
             failures.append((app, str(e)))
 
-    return {'stamp': server_time}
+    return {'received': server_time}
