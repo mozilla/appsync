@@ -23,12 +23,8 @@ verify = Service(name='verify', path='/verify')
 
 
 ## XXX use Ryan's browser id pyramid plugin
-<<<<<<< HEAD
-@verify.post(renderer='simplejson')
-=======
 ## Note: this is the debugging/mock verification
-@verify.post()
->>>>>>> dfb9f783c240ccf693554496c9e834651644326f
+@verify.post(renderer='simplejson')
 def verify(request):
     data = request.POST
     if 'audience' not in data or 'assertion' not in data:
