@@ -3,9 +3,8 @@ from webob.exc import HTTPBadRequest
 import re
 import urllib
 
-from appsync.application import get_applications, add_applications
 from appsync.session import get_session, set_session
-from appsync.util import round_time
+from appsync.util import round_time, get_storage
 
 
 _DOMAIN = 'browserid.org'
@@ -14,6 +13,7 @@ _KO = 'failed'
 _VALIDITY_DURATION = 1000
 _ASSERTION_MATCH = re.compile('a=(.*)')
 _SESSION_DURATION = 300
+
 
 
 #
@@ -94,7 +94,8 @@ def get_data(request):
     res = {'since': since,
            'until': round_time()}
 
-    res['applications'] = get_applications(user, collection, since)
+    storage = get_storage(request)
+    res['applications'] = storage.get_applications(user, collection, since)
     return res
 
 
@@ -109,6 +110,7 @@ def post_data(request):
 
     # in case this fails, the error will get logged
     # and the user will get a 503 (empty body)
-    add_applications(user, collection, apps)
+    storage = get_storage(request)
+    storage.add_applications(user, collection, apps)
 
     return {'received': server_time}

@@ -133,15 +133,15 @@ class TestSyncApp(unittest.TestCase):
         data2 = self.app.get('/collections/tarek/blah?since=%s' % since).json
 
         # what did we get ?
-        self.assertTrue(data2['until'] <= time.time())
+        self.assertTrue(data2['until'] <= time.time() + 0.1)
 
         # XXX we need to use Decimal everywhere on server-side
         self.assertTrue(since - data2['since'] < 0.2)
         self.assertEqual(len(data['applications']), 0)
 
         # ok let's put some data up
-        app1 = {'last_modified': time.time()}
-        app2 = {'last_modified': time.time()}
+        app1 = {'last_modified': time.time() + 0.1}
+        app2 = {'last_modified': time.time() + 0.1}
 
         apps = json.dumps([app1, app2])
         res = self.app.post('/collections/tarek/blah', params=apps)
@@ -150,6 +150,6 @@ class TestSyncApp(unittest.TestCase):
         data = self.app.get('/collections/tarek/blah').json
 
         # what did we get ?
-        self.assertTrue(data['until'] <= time.time())
+        self.assertTrue(data['until'] <= time.time() + 0.1)
         self.assertEqual(data['since'], 0)
         self.assertEqual(len(data['applications']), 2)

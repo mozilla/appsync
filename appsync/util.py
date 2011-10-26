@@ -35,3 +35,7 @@ def round_time(value=None, precision=2):
         return Decimal(value).quantize(Decimal('1.' + digits))
     except InvalidOperation:
         raise ValueError(value)
+
+
+def get_storage(request):
+    return request.registry['storage']

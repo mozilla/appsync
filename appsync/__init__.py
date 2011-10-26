@@ -5,6 +5,7 @@ from mozsvc.config import Config
 
 from appsync.resources import Root
 from appsync.util import json_renderer
+from appsync.storage import MemDatabase
 
 
 def main(global_config, **settings):
@@ -31,4 +32,8 @@ def main(global_config, **settings):
 
     # local views
     config.scan("appsync.views")
+
+    # initialize the storage
+    config.registry['storage'] = MemDatabase()
+
     return config.make_wsgi_app()
