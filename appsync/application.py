@@ -15,10 +15,16 @@ class Application(dict):
         self['last_modified'] = time.time() - 10
 
 
-def get_applications(user, collection):
-    return _APPS[_key(user, collection)]
+def get_applications(user, collection, since=0):
+    res = []
+    for app in _APPS[_key(user, collection)]:
+        if app['last_modified'] < since:
+            continue
+        res.append(app)
+    return res
 
 
-def add_application(user, collection, application):
+def add_applications(user, collection, applications):
     key = _key(user, collection)
-    _APPS[key].append(application)
+    for application in applications:
+        _APPS[key].append(application)

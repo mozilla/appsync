@@ -1,9 +1,10 @@
 import os
 
 from pyramid.config import Configurator
+from mozsvc.config import Config
 
 from appsync.resources import Root
-from mozsvc.config import Config
+from appsync.util import json_renderer
 
 
 def main(global_config, **settings):
@@ -18,6 +19,9 @@ def main(global_config, **settings):
     conf_dir, _ = os.path.split(config_file)
 
     config = Configurator(root_factory=Root, settings=settings)
+
+    # custom renderer
+    config.add_renderer('simplejson', json_renderer)
 
     # adds cornice
     config.include("cornice")

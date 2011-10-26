@@ -124,7 +124,7 @@ class TestSyncApp(unittest.TestCase):
         data = self.app.get('/collections/tarek/blah').json
 
         # what did we get ?
-        self.assertTrue(data['until'] <= time.time())
+        self.assertTrue(data['until'] <= time.time() + 0.1)
         self.assertEqual(data['since'], 0)
         self.assertEqual(len(data['applications']), 0)
 

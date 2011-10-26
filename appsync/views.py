@@ -1,10 +1,10 @@
 from cornice import Service
 from webob.exc import HTTPBadRequest
-import time
 import re
 
-from appsync.application import get_applications, add_application
+from appsync.application import get_applications, add_applications
 from appsync.session import get_session, set_session
+from appsync.util import round_time
 
 
 _DOMAIN = 'browserid.org'
@@ -22,7 +22,7 @@ verify = Service(name='verify', path='/verify')
 
 
 ## XXX use Ryan's browser id pyramid plugin
-@verify.post()
+@verify.post(renderer='simplejson')
 def verify(request):
     data = request.POST
     if 'audience' not in data or 'assertion' not in data:
@@ -45,7 +45,7 @@ def verify(request):
     return {'status': _OK,
             'email': assertion,
             'audience': audience,
-            'valid-until': time.time() + _VALIDITY_DURATION,
+            'valid-until': round_time() + _VALIDITY_DURATION,
             'issuer': _DOMAIN}
 
 
@@ -71,48 +71,35 @@ def _check_session(request):
 data = Service(name='data', path='/collections/{user}/{collection}')
 
 
-@data.get()
+@data.get(renderer='simplejson')
 def get_data(request):
     user, collection, session = _check_session(request)
 
     # we should use decimals everywhere XXX
     try:
         since = request.GET.get('since', '0')
-        since = float(since)
+        since = round_time(since)
     except TypeError:
         raise HTTPBadRequest()
 
-
     res = {'since': since,
-           'until': time.time(),
-           'applications': []}
+           'until': round_time()}
 
-    for app in get_applications(user, collection):
-        if app['last_modified'] < since:
-            continue
-        res['applications'].append(app)
-
+    res['applications'] = get_applications(user, collection, since)
     return res
 
 
-@data.post()
+@data.post(renderer='simplejson')
 def post_data(request):
     user, collection, session = _check_session(request)
-    server_time = time.time()
+    server_time = round_time()
     try:
         apps = request.json_body
     except ValueError:
         raise HTTPBadRequest()
 
-    # XXX what about sending back a partial report if some
-    # apps are not compliant
-    failures = []
-
-    for app in apps:
-        try:
-            add_application(user, collection, app)
-        except Exception, e:
-            # failed for some reason
-            failures.append((app, str(e)))
+    # in case this fails, the error will get logged
+    # and the user will get a 503 (empty body)
+    add_applications(user, collection, apps)
 
     return {'stamp': server_time}
