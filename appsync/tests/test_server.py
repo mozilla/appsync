@@ -15,6 +15,11 @@ class TestSyncApp(unittest.TestCase):
         settings = {}
         self.app = TestApp(main(globs, **settings))
 
+    def tearDown(self):
+        # XXX should look at the path in the config file
+        if os.path.exists('/tmp/appsync-test.db'):
+            os.remove('/tmp/appsync-test.db')
+
     def test_protocol(self):
         """
         To start the sync process you must have a BrowserID assertion.
