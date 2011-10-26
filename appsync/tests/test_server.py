@@ -43,15 +43,15 @@ class TestSyncApp(unittest.TestCase):
         `https://myapps.mozillalabs.com/apps-sync/verify`
         """
         # missing 'audience'  => 400
-        login_data = {'assertion': 'blah'}
+        login_data = {'assertion': 'tarek'}
         self.app.post('/verify', login_data, status=400)
 
         # missing 'assertion'  => 400
-        login_data = {'audience': 'blah'}
+        login_data = {'audience': 'tarek'}
         self.app.post('/verify', login_data, status=400)
 
         # looking good, but bad assertion
-        login_data = {'assertion': 'blah', 'audience': 'bouh'}
+        login_data = {'assertion': 'tarek', 'audience': 'bouh'}
         resp = self.app.post('/verify', login_data)
         res = resp.json
 
@@ -59,15 +59,15 @@ class TestSyncApp(unittest.TestCase):
         self.assertEqual(res['status'], 'failed')
 
         # looking good
-        login_data = {'assertion': 'a=blah?bli',
-                      'audience': 'blah?bli'}
+        login_data = {'assertion': 'a=tarek?bli',
+                      'audience': 'tarek?bli'}
         resp = self.app.post('/verify', login_data)
         res = resp.json
 
         # checking the result
         self.assertEqual(res['status'], 'okay')
-        self.assertEqual(res['audience'], 'blah?bli')
-        self.assertEqual(res['email'], 'a=blah')
+        self.assertEqual(res['audience'], 'tarek?bli')
+        self.assertEqual(res['email'], 'tarek')
         self.assertTrue(res['valid-until'] > time.time())
         self.assertTrue(res['issuer'], 'browserid.org')
 

@@ -35,11 +35,15 @@ def verify(request):
 
     # check if audience matches assertion
     res = _ASSERTION_MATCH.search(assertion)
-    if res and res.group(1) != audience:
+    if not res or res.group(1) != audience:
         return {'status': _KO,
                 'reason': 'audience does not match'}
 
     assertion = assertion.split('?')[0]
+
+    # XXX removing the a= header
+    if assertion.startswith('a='):
+        assertion = assertion[2:]
 
     # create a new session for the given user
     set_session(assertion)  # XXX
