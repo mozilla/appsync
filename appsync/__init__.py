@@ -4,8 +4,9 @@ from pyramid.config import Configurator
 from mozsvc.config import Config
 
 from appsync.resources import Root
-from appsync.util import json_renderer
-from appsync.storage import MemDatabase
+
+# XXX user resolve_name from mozsvc
+from appsync.util import json_renderer, resolve_name
 
 
 def main(global_config, **settings):
@@ -16,7 +17,7 @@ def main(global_config, **settings):
                         os.path.expanduser(
                         config_file))))
 
-    settings['config'] = config = Config(config_file)
+    settings['config'] = config_ = Config(config_file)
     conf_dir, _ = os.path.split(config_file)
 
     config = Configurator(root_factory=Root, settings=settings)
@@ -34,6 +35,8 @@ def main(global_config, **settings):
     config.scan("appsync.views")
 
     # initialize the storage
-    config.registry['storage'] = MemDatabase()
+    backend = config_.get('storage', 'backend')
+    klass = resolve_name(backend)
+    config.registry['storage'] = klass(**dict(config_.items('storage')))
 
     return config.make_wsgi_app()
