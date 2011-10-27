@@ -7,7 +7,7 @@ from mozsvc.config import Config
 from appsync.resources import Root
 
 # XXX user resolve_name from mozsvc
-from appsync.util import json_renderer, resolve_name
+from appsync.util import resolve_name
 
 logger = logging.getLogger('appsync')
 
@@ -24,9 +24,6 @@ def main(global_config, **settings):
     conf_dir, _ = os.path.split(config_file)
 
     config = Configurator(root_factory=Root, settings=settings)
-
-    # custom renderer
-    config.add_renderer('simplejson', json_renderer)
 
     # adds cornice
     config.include("cornice")

@@ -24,7 +24,7 @@ verify = Service(name='verify', path='/verify')
 
 ## XXX use Ryan's browser id pyramid plugin
 ## Note: this is the debugging/mock verification
-@verify.post(renderer='simplejson')
+@verify.post()
 def verify(request):
     data = request.POST
     if 'audience' not in data or 'assertion' not in data:
@@ -80,7 +80,7 @@ def _check_session(request):
 data = Service(name='data', path='/collections/{user}/{collection}')
 
 
-@data.get(renderer='simplejson')
+@data.get()
 def get_data(request):
     user, collection, session = _check_session(request)
 
@@ -99,7 +99,7 @@ def get_data(request):
     return res
 
 
-@data.post(renderer='simplejson')
+@data.post()
 def post_data(request):
     user, collection, session = _check_session(request)
     server_time = round_time()
