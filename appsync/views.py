@@ -15,7 +15,6 @@ _ASSERTION_MATCH = re.compile('a=(.*)')
 _SESSION_DURATION = 300
 
 
-
 #
 # /verify service, that adds a user session
 #
@@ -84,7 +83,6 @@ data = Service(name='data', path='/collections/{user}/{collection}')
 def get_data(request):
     user, collection, session = _check_session(request)
 
-    # we should use decimals everywhere XXX
     try:
         since = request.GET.get('since', '0')
         since = round_time(since)

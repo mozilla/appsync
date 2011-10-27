@@ -1,12 +1,10 @@
-import time
-import collections
 import traceback
 
 import simplejson as json
 from sqlalchemy.exc import OperationalError, TimeoutError
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base, Column
-from sqlalchemy import Integer, String, Text, DateTime
+from sqlalchemy import Integer, String, Text
 
 from mozsvc.exceptions import BackendError
 
@@ -26,7 +24,7 @@ class Application(_Base):
     collection = Column(String(256), nullable=False)
     #origin = Column(String(256), nullable=False)    # XXX do we need this
     last_modified = Column(Integer)
-    data =  Column(Text)
+    data = Column(Text)
 
 
 _GET_QUERY = """\

@@ -1,4 +1,3 @@
-import simplejson as json
 from decimal import Decimal, InvalidOperation
 import time
 import os
@@ -38,18 +37,6 @@ def resolve_name(name):
             raise ImportError(exc)
 
     return ret
-
-
-
-def json_renderer(helper):
-    return _JsonRenderer()
-
-
-class _JsonRenderer(object):
-    def __call__(self, data, context):
-        response = context['request'].response
-        response.content_type = 'application/json'
-        return json.dumps(data, use_decimal=True)
 
 
 def round_time(value=None, precision=2):

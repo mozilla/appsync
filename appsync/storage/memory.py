@@ -1,7 +1,4 @@
-import time
 import collections
-
-from appsync.util import round_time
 
 
 def _key(*args):
