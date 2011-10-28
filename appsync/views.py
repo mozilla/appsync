@@ -20,19 +20,22 @@ _SESSION_DURATION = 300
 #
 # /verify service, that adds a user session
 #
-verify = Service(name='verify', path='/verify')
+verify_desc = """\
+To start the sync process you must have a BrowserID assertion.
+
+It should be an assertion from `myapps.mozillalabs.com` or another in
+a whitelist of domains."""
+
+
+verify = Service(name='verify', path='/verify',
+                 description=verify_desc)
 
 
 ## XXX use Ryan's browser id pyramid plugin
 ## Note: this is the debugging/mock verification
 @verify.post()
 def verify(request):
-    """To start the sync process you must have a BrowserID assertion.
-
-    It should be an assertion from `myapps.mozillalabs.com` or another in
-    a whitelist of domains.
-
-    The request takes 2 options:
+    """The request takes 2 options:
 
     - assertion
     - audience
@@ -103,11 +106,61 @@ def _check_session(request):
     return user, collection, session
 
 
-data = Service(name='data', path='/collections/{user}/{collection}')
+data = Service(name='data', path='/collections/{user}/{collection}',
+               description='Used to get and set the apps')
 
 
 @data.get()
 def get_data(request):
+    """After authenticating with the server and getting back the URL of the
+    collection, request::
+
+        GET /collections/{user}/{collection}?since=timestamp
+
+    `since` is optional; on first sync is should be empty or left off. The
+    server will return an object::
+
+        {until: timestamp,
+         incomplete: bool, applications: {origin: {...},
+                                                   ...} }
+
+    The response may not be complete if there are too many applications.
+    If this is the case then `incomplete` will be true (it may be left out
+    if
+    the response is complete).  Another request using `since={until}` will
+    get further applications (this may need to be repeated many times).
+
+    The client should save the value of `until` and use it for subsequent
+    requests.
+
+    In the case of no new items the response will be only::
+
+        {until: timestamp}
+
+    The client should always start with this GET request and only then send
+    its own updates.  It should ensure that its local timestamp is
+    sensible in comparison to the value of `until`.
+
+    Applications returned may be older than the local applications, in that
+    case then the client should ignore the server's application and use
+    its local copy, causing an overwrite.  The same is true for deleted
+    applications; if the local installed copy has a `last_modified` date
+    newer than the deleted server instance then the server instance
+    should be ignored (the user reinstalled an application).
+
+    **NOTE:** there are some conflicts that may occur, specifically
+    receipts should be merged.
+
+    When an application is added from the server the client should
+    *locally* set `app.sync` to true (this is in the [application
+    representation]
+    (https://developer.mozilla.org/en/OpenWebApps/The_JavaScript_API
+    #Application_Representation), not the manifest).
+
+    You must always retain `last_modified` as you received it from
+    the server (unless you ignore the application in favor of a
+    newer local version).
+    """
     user, collection, session = _check_session(request)
 
     try:
@@ -126,6 +179,26 @@ def get_data(request):
 
 @data.post()
 def post_data(request):
+    """The client should keep track of the last time it sent updates to the
+    server, and send updates when there are newer applications.
+
+    **NOTE:** there is a case when an update might be lost because of an
+    update from another device; this would be okay except that the client
+    doesn't know it needs to re-send that update.  How do we confirm that ?
+
+    The updates are sent with::
+
+        POST /collections/{user}/{collection}
+
+        {origin: {...}, ...}
+
+    Each object must have a `last_modified` key.
+
+    The response is only::
+
+        {received: timestamp}
+
+    """
     user, collection, session = _check_session(request)
     server_time = round_time()
     try:
