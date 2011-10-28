@@ -1,5 +1,9 @@
 import re
 import urllib
+try:
+    import simplejson as json
+except ImportError:
+    import json
 
 from webob.exc import HTTPBadRequest
 from cornice import Service
@@ -15,6 +19,7 @@ _KO = 'failed'
 _VALIDITY_DURATION = 1000
 _ASSERTION_MATCH = re.compile('a=(.*)')
 _SESSION_DURATION = 300
+_BROWSERID_VERIFY = 'https://browserid.org/verify'
 
 
 #
@@ -33,8 +38,9 @@ verify = Service(name='verify', path='/verify',
 
 ## XXX use Ryan's browser id pyramid plugin
 ## Note: this is the debugging/mock verification
-@verify.post()
-def verify(request):
+## FIXME: this should be enabled at /verify per some configuration (for testing purposes)
+#@verify.post()
+def mock_verify(request):
     """The request takes 2 options:
 
     - assertion
@@ -68,7 +74,7 @@ def verify(request):
         return {'status': _KO,
                 'reason': 'audience does not match'}
 
-    assertion = assertion.split('?')[0]
+    assertion = assertion.split('?', 1)[0]
 
     # XXX removing the a= header
     if assertion.startswith('a='):
@@ -86,6 +92,53 @@ def verify(request):
             'issuer': _DOMAIN,
             'collection_url': request.application_url + collection_url}
 
+
+@verify.post()
+def verify(request):
+    """The request takes 2 options:
+
+    - assertion
+    - audience
+
+    The response will be a JSON document, containing the same information
+    as a request to `https://browserid.org/verify` but also with the keys
+    (in case of a successful login) `collection_url`  and
+    `authentication_header`.
+
+    `collection_url` will be the URL where you will access the
+    applications.  `authentication_header` is a value you will include
+    in `Authentication: {authentication_header}` with each request.
+
+    A request may return a 401 status code.  The `WWW-Authenticate`
+    header will not be significant in this case.  Instead you should
+    start the login process over with a request to
+
+    `https://myapps.mozillalabs.com/apps-sync/verify`
+    """
+    data = request.POST
+    if 'audience' not in data or 'assertion' not in data:
+        raise HTTPBadRequest()
+
+    assertion = data['assertion']
+    audience = data['audience']
+
+    ## FIXME: basic HTTP errors should be caught and handled
+    ## FIXME: browser certifications
+    resp = urllib.urlopen(
+        _BROWSERID_VERIFY,
+        urllib.urlencode(dict(assertion=assertion, audience=audience)))
+    resp_data = json.loads(resp.read())
+
+    if resp_data.get('email') and resp_data['status'] == 'okay':
+        collection_url = '/collections/%s/apps' % urllib.quote(resp_data['email'])
+        resp_data['collection_url'] = request.application_url + collection_url
+        ## FIXME: should also include http_authentication value for future auth
+
+    # create a new session for the given user
+    ## FIXME: I don't think we need this
+    #set_session(assertion)  # XXX
+
+    return resp_data
 
 #
 # GET/POST for the collections data
