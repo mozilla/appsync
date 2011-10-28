@@ -3,11 +3,10 @@ import logging
 
 from pyramid.config import Configurator
 from mozsvc.config import Config
+from mozsvc.util import resolve_name
 
 from appsync.resources import Root
 
-# XXX user resolve_name from mozsvc
-from appsync.util import resolve_name
 
 logger = logging.getLogger('appsync')
 

@@ -7,8 +7,8 @@ from sqlalchemy.ext.declarative import declarative_base, Column
 from sqlalchemy import Integer, String, Text
 
 from mozsvc.exceptions import BackendError
+from mozsvc.util import round_time
 
-from appsync.util import round_time
 from appsync import logger
 
 

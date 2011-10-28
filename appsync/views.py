@@ -1,10 +1,12 @@
-from cornice import Service
-from webob.exc import HTTPBadRequest
 import re
 import urllib
 
+from webob.exc import HTTPBadRequest
+from cornice import Service
+from mozsvc.util import round_time
+
+from appsync.util import get_storage
 from appsync.session import get_session, set_session
-from appsync.util import round_time, get_storage
 
 
 _DOMAIN = 'browserid.org'
