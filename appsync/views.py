@@ -27,6 +27,31 @@ verify = Service(name='verify', path='/verify')
 ## Note: this is the debugging/mock verification
 @verify.post()
 def verify(request):
+    """To start the sync process you must have a BrowserID assertion.
+
+    It should be an assertion from `myapps.mozillalabs.com` or another in
+    a whitelist of domains.
+
+    The request takes 2 options:
+
+    - assertion
+    - audience
+
+    The response will be a JSON document, containing the same information
+    as a request to `https://browserid.org/verify` but also with the keys
+    (in case of a successful login) `collection_url`  and
+    `authentication_header`.
+
+    `collection_url` will be the URL where you will access the
+    applications.  `authentication_header` is a value you will include
+    in `Authentication: {authentication_header}` with each request.
+
+    A request may return a 401 status code.  The `WWW-Authenticate`
+    header will not be significant in this case.  Instead you should
+    start the login process over with a request to
+
+    `https://myapps.mozillalabs.com/apps-sync/verify`
+    """
     data = request.POST
     if 'audience' not in data or 'assertion' not in data:
         raise HTTPBadRequest()
