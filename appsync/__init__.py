@@ -33,7 +33,7 @@ def main(global_config, **settings):
     # local views
     config.scan("appsync.views")
 
-    if config_.get('global', 'test'):
+    if global_config.get('test'):
         # test views
         config.scan("appsync.tests.views")
 
