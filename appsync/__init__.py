@@ -22,7 +22,9 @@ def main(global_config, **settings):
     settings['config'] = config_ = Config(config_file)
     conf_dir, _ = os.path.split(config_file)
 
-    config = Configurator(root_factory=Root, settings=settings)
+    mock_browserid = bool(global_config.get('test'))
+
+    config = Configurator(root_factory=Root, settings=settings, autocommit=mock_browserid)
 
     # adds cornice
     config.include("cornice")
@@ -33,7 +35,7 @@ def main(global_config, **settings):
     # local views
     config.scan("appsync.views")
 
-    if global_config.get('test'):
+    if mock_browserid:
         # test views
         config.scan("appsync.tests.views")
 
