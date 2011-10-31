@@ -177,8 +177,10 @@ class TestSyncApp(unittest.TestCase):
         app2 = {'last_modified': time.time() + 0.1}
 
         apps = json.dumps([app1, app2])
-        res = self.app.post('/collections/tarek/blah',
-                            extra_environ=extra, params=apps)
+
+        res = self.app.post('/collections/tarek/blah', params=apps,
+                            extra_environ=extra,
+                            content_type='application/json')
 
         # see if we got them
         data = self.app.get('/collections/tarek/blah',
@@ -188,3 +190,36 @@ class TestSyncApp(unittest.TestCase):
         self.assertTrue(data['until'] <= time.time() + 0.1)
         self.assertEqual(data['since'], 0)
         self.assertEqual(len(data['applications']), 2)
+
+        # let's delete some stuff
+        """
+        POST /collections/user/collection?delete
+
+        body (JSON)
+
+            {client: client_id, reason: optional text reason}
+
+        Deletes the collection
+
+        On a GET you'll get back
+            {collection_deleted: {client: client_id,
+                                  reason: optional text reason}}
+
+        The client should inform the user, ask for
+        re-authentication via browserid(maybe?).  Further POSTs
+        will remove the deleted status
+
+        Clients should always log out after doing this deletion.
+        """
+        delete = {'client_id': 'client1',
+                  'reason': 'well...'}
+
+        self.app.post('/collections/tarek/blah?delete',
+                      extra_environ=extra, params=json.dumps(delete),
+                      content_type='application/json')
+
+        # see if we got them
+        data = self.app.get('/collections/tarek/blah',
+                            extra_environ=extra).json
+
+        self.assertEquals(['collection_deleted'], data.keys())

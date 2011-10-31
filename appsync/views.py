@@ -10,6 +10,7 @@ from webob.exc import HTTPBadRequest, HTTPUnauthorized
 from cornice import Service
 from mozsvc.util import round_time
 from appsync.util import get_storage
+from appsync.storage import CollectionDeletedError
 
 
 _BROWSERID_VERIFY = 'https://browserid.org/verify'
@@ -80,7 +81,7 @@ def _check_auth(request):
     """Controls the Authorization header and returns the username and the
     collection.
 
-    Raises a 401 in theses cases:
+    Raises a 401 in these cases:
 
     - If the header is not present or unrecognized
     - If the request path is not *owned* by that user
@@ -190,7 +191,13 @@ def get_data(request):
            'until': round_time()}
 
     storage = get_storage(request)
-    res['applications'] = storage.get_applications(user, collection, since)
+    try:
+        res['applications'] = storage.get_applications(user, collection,
+                                                       since)
+    except CollectionDeletedError, e:
+        return {'collection_deleted': {'reason': e.reason,
+                                       'client_id': e.client_id}}
+
     return res
 
 
@@ -218,6 +225,23 @@ def post_data(request):
     """
     user, collection = _check_auth(request)
     server_time = round_time()
+    storage = get_storage(request)
+
+    if 'delete' in request.params:
+        # we were asked to delete the collection
+        try:
+            info = request.json_body
+        except ValueError:
+            raise HTTPBadRequest()
+
+        if 'client_id' not in info:
+            raise HTTPBadRequest()
+
+        client_id = info['client_id']
+        reason = info.get('reason', '')
+        storage.delete(user, collection, client_id, reason)
+        return {'received': server_time}
+
     try:
         apps = request.json_body
     except ValueError:
@@ -225,7 +249,7 @@ def post_data(request):
 
     # in case this fails, the error will get logged
     # and the user will get a 503 (empty body)
-    storage = get_storage(request)
+
     storage.add_applications(user, collection, apps)
 
     return {'received': server_time}

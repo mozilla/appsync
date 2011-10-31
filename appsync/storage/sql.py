@@ -10,10 +10,25 @@ from mozsvc.exceptions import BackendError
 from mozsvc.util import round_time
 
 from appsync import logger
+from appsync.storage import CollectionDeletedError
 
 
 _TABLES = []
 _Base = declarative_base()
+
+
+class Deleted(_Base):
+    __tablename__ = 'deleted'
+
+    id = Column(Integer, primary_key=True)
+    user = Column(String(256), nullable=False)
+    collection = Column(String(256), nullable=False)
+    reason = Column(String(256), nullable=False)
+    client_id = Column(String(256), nullable=False)
+
+
+deleted = Deleted.__table__
+_TABLES.append(deleted)
 
 
 class Application(_Base):
@@ -25,6 +40,40 @@ class Application(_Base):
     #origin = Column(String(256), nullable=False)    # XXX do we need this
     last_modified = Column(Integer)
     data = Column(Text)
+
+
+applications = Application.__table__
+_TABLES.append(applications)
+
+
+_ADD_DEL = """
+insert into deleted
+    (user, collection, reason, client_id)
+values
+    (:user, :collection, :reason, :client_id)
+"""
+
+
+_REMOVE_DEL = """
+delete from
+    delete
+where
+    user = :user
+and
+    collection = :collection
+"""
+
+_IS_DEL = """
+select
+    client_id, reason
+from
+    deleted
+where
+    user = :user
+and
+    collection = :collection
+"""
+
 
 
 _GET_QUERY = """\
@@ -51,9 +100,16 @@ values
     (:user, :collection, :last_modified, :data)
 """
 
+_DEL_QUERY = """
+delete from
+    applications
+where
+    user = :user
+and
+    collection = :collection
+"""
 
-applications = Application.__table__
-_TABLES.append(applications)
+
 
 
 def _key(*args):
@@ -95,7 +151,16 @@ class SQLDatabase(object):
     def _execute(self, *args, **kw):
         return safe_execute(self.engine, *args, **kw)
 
+    def delete(self, user, collection, client_id, reason=''):
+        self._execute(_DEL_QUERY, user=user, collection=collection)
+        self._execute(_ADD_DEL, user=user, collection=collection,
+                      reason=reason, client_id=client_id)
+
     def get_applications(self, user, collection, since=0):
+        res = self._execute(_IS_DEL, user=user, collection=collection)
+        deleted = res.fetchone()
+        if deleted is not None:
+            raise CollectionDeletedError(deleted.client_id, deleted.reason)
 
         since = int(round_time(since) * 100)
         apps = self._execute(_GET_QUERY, user=user, collection=collection,
@@ -105,6 +170,10 @@ class SQLDatabase(object):
         return [json.loads(app.data) for app in apps]
 
     def add_applications(self, user, collection, applications):
+        res = self._execute(_IS_DEL, user=user, collection=collection)
+        deleted = res.fetchone()
+        if deleted is not None:
+            self._execute(_REMOVE_DEL, user=user, collection=collection)
 
         now = int(round_time() * 100)
 
