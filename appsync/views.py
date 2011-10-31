@@ -1,25 +1,19 @@
-import re
+import base64
+import binascii
 import urllib
 try:
     import simplejson as json
 except ImportError:
     import json
 
-from webob.exc import HTTPBadRequest
+from webob.exc import HTTPBadRequest, HTTPUnauthorized
 from cornice import Service
 from mozsvc.util import round_time
-
 from appsync.util import get_storage
-from appsync.session import get_session, set_session
 
 
-_DOMAIN = 'browserid.org'
-_OK = 'okay'
-_KO = 'failed'
-_VALIDITY_DURATION = 1000
-_ASSERTION_MATCH = re.compile('a=(.*)')
-_SESSION_DURATION = 300
 _BROWSERID_VERIFY = 'https://browserid.org/verify'
+_OK = 'okay'
 
 
 #
@@ -32,69 +26,11 @@ It should be an assertion from `myapps.mozillalabs.com` or another in
 a whitelist of domains."""
 
 
-verify = Service(name='verify', path='/verify',
-                 description=verify_desc)
-
-
-## XXX use Ryan's browser id pyramid plugin
-## Note: this is the debugging/mock verification
-## FIXME: this should be enabled at /verify per some configuration (for testing purposes)
-#@verify.post()
-def mock_verify(request):
-    """The request takes 2 options:
-
-    - assertion
-    - audience
-
-    The response will be a JSON document, containing the same information
-    as a request to `https://browserid.org/verify` but also with the keys
-    (in case of a successful login) `collection_url`  and
-    `authentication_header`.
-
-    `collection_url` will be the URL where you will access the
-    applications.  `authentication_header` is a value you will include
-    in `Authentication: {authentication_header}` with each request.
-
-    A request may return a 401 status code.  The `WWW-Authenticate`
-    header will not be significant in this case.  Instead you should
-    start the login process over with a request to
-
-    `https://myapps.mozillalabs.com/apps-sync/verify`
-    """
-    data = request.POST
-    if 'audience' not in data or 'assertion' not in data:
-        raise HTTPBadRequest()
-
-    assertion = data['assertion']
-    audience = data['audience']
-
-    # check if audience matches assertion
-    res = _ASSERTION_MATCH.search(assertion)
-    if not res or res.group(1) != audience:
-        return {'status': _KO,
-                'reason': 'audience does not match'}
-
-    assertion = assertion.split('?', 1)[0]
-
-    # XXX removing the a= header
-    if assertion.startswith('a='):
-        assertion = assertion[2:]
-
-    # create a new session for the given user
-    set_session(assertion)  # XXX
-
-    collection_url = '/collections/%s/apps' % urllib.quote(assertion)
-
-    return {'status': _OK,
-            'email': assertion,
-            'audience': audience,
-            'valid-until': round_time() + _VALIDITY_DURATION,
-            'issuer': _DOMAIN,
-            'collection_url': request.application_url + collection_url}
+verify = Service(name='verify', path='/verify', description=verify_desc)
 
 
 @verify.post()
-def verify(request):
+def verify_(request):
     """The request takes 2 options:
 
     - assertion
@@ -129,14 +65,10 @@ def verify(request):
         urllib.urlencode(dict(assertion=assertion, audience=audience)))
     resp_data = json.loads(resp.read())
 
-    if resp_data.get('email') and resp_data['status'] == 'okay':
+    if resp_data.get('email') and resp_data['status'] == _OK:
         collection_url = '/collections/%s/apps' % urllib.quote(resp_data['email'])
         resp_data['collection_url'] = request.application_url + collection_url
         ## FIXME: should also include http_authentication value for future auth
-
-    # create a new session for the given user
-    ## FIXME: I don't think we need this
-    #set_session(assertion)  # XXX
 
     return resp_data
 
@@ -144,19 +76,51 @@ def verify(request):
 # GET/POST for the collections data
 #
 
-def _check_session(request):
-    """Controls if the user has a session"""
-    # need to add auth here XXX
-    # XXX need to make sure this user == the authenticated user
+def _check_auth(request):
+    """Controls the Authorization header and returns the username and the
+    collection.
+
+    Raises a 401 in theses cases:
+
+    - If the header is not present or unrecognized
+    - If the request path is not *owned* by that user
+    - If the user signature does not match the user
+
+    The header is of the form:
+
+        AppSync b64(assertion):b64(username):b64(usersig)
+
+    """
     user = request.matchdict['user']
     collection = request.matchdict['collection']
+    auth = request.environ.get('HTTP_AUTHORIZATION')
 
-    session = get_session(user)
-    if session is None:
-        # XXX return something useful
-        raise HTTPBadRequest()
+    if auth is None:
+        raise HTTPUnauthorized()
 
-    return user, collection, session
+    if not auth.startswith('AppSync '):
+      raise HTTPUnauthorized('Invalid token')
+
+    auth = auth[len('AppSync '):].strip()
+    auth_part = auth.split(':')
+    if len(auth_part) != 3:
+        raise HTTPUnauthorized('Invalid token')
+
+    try:
+        auth_part = [base64.decodestring(part) for part in auth_part]
+    except (binascii.Error, ValueError):
+        raise HTTPUnauthorized('Invalid token')
+
+
+    assertion, username, usersig = auth_part
+
+    # let's reject the call if the url is not owned by the user
+    if user != username:
+        raise HTTPUnauthorized()
+
+    # need to verify the user signature here
+    # XXX
+    return user, collection
 
 
 data = Service(name='data', path='/collections/{user}/{collection}',
@@ -214,7 +178,7 @@ def get_data(request):
     the server (unless you ignore the application in favor of a
     newer local version).
     """
-    user, collection, session = _check_session(request)
+    user, collection = _check_auth(request)
 
     try:
         since = request.GET.get('since', '0')
@@ -252,7 +216,7 @@ def post_data(request):
         {received: timestamp}
 
     """
-    user, collection, session = _check_session(request)
+    user, collection = _check_auth(request)
     server_time = round_time()
     try:
         apps = request.json_body
