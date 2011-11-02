@@ -1,17 +1,16 @@
-from base64 import urlsafe_b64encode as b64enc
-from base64 import urlsafe_b64decode as b64dec
-import binascii
 import urllib
 try:
     import simplejson as json
 except ImportError:
     import json     # NOQA
 
-from webob.exc import HTTPBadRequest, HTTPUnauthorized
+from webob.exc import HTTPBadRequest
 from cornice import Service
 from mozsvc.util import round_time
+
 from appsync.util import get_storage
 from appsync.storage import CollectionDeletedError
+from appsync.auth import create_auth, check_auth
 
 
 _BROWSERID_VERIFY = 'https://browserid.org/verify'
@@ -71,8 +70,8 @@ def verify_(request):
         collection_url = '/collections/%s/apps' % \
                 urllib.quote(resp_data['email'])
         resp_data['collection_url'] = request.application_url + collection_url
-        resp_data['http_authorization'] = _create_auth(assertion,
-                                                       resp_data['email'])
+        resp_data['http_authorization'] = create_auth(assertion,
+                                                      resp_data['email'])
 
     return resp_data
 
@@ -80,59 +79,6 @@ def verify_(request):
 # GET/POST for the collections data
 #
 
-
-def _check_auth(request):
-    """Controls the Authorization header and returns the username and the
-    collection.
-
-    Raises a 401 in these cases:
-
-    - If the header is not present or unrecognized
-    - If the request path is not *owned* by that user
-    - If the user signature does not match the user
-
-    The header is of the form:
-
-        AppSync b64(assertion):b64(username):b64(usersig)
-
-    """
-    user = request.matchdict['user']
-    collection = request.matchdict['collection']
-    auth = request.environ.get('HTTP_AUTHORIZATION')
-
-    if auth is None:
-        raise HTTPUnauthorized()
-
-    if not auth.startswith('AppSync '):
-        raise HTTPUnauthorized('Invalid token')
-
-    auth = auth[len('AppSync '):].strip()
-    auth_part = auth.split(':')
-    if len(auth_part) != 3:
-        raise HTTPUnauthorized('Invalid token')
-
-    try:
-        auth_part = [b64dec(part) for part in auth_part]
-    except (binascii.Error, ValueError):
-        raise HTTPUnauthorized('Invalid token')
-
-    assertion, username, usersig = auth_part
-
-    # let's reject the call if the url is not owned by the user
-    if user != username:
-        raise HTTPUnauthorized()
-
-    # need to verify the user signature here
-    # XXX
-    return user, collection
-
-
-def _create_auth(assertion, username):
-    ## FIXME: need to generate the user signature here
-    usersig = 'XXX'
-    auth = 'AppSync %s:%s:%s' % (b64enc(assertion), b64enc(username),
-                                 b64enc(usersig))
-    return auth
 
 data = Service(name='data', path='/collections/{user}/{collection}',
                description='Used to get and set the apps')
@@ -189,7 +135,7 @@ def get_data(request):
     the server (unless you ignore the application in favor of a
     newer local version).
     """
-    user, collection = _check_auth(request)
+    user, collection = check_auth(request)
 
     try:
         since = request.GET.get('since', '0')
@@ -241,7 +187,7 @@ def post_data(request):
         {received: timestamp}
 
     """
-    user, collection = _check_auth(request)
+    user, collection = check_auth(request)
     server_time = round_time()
     storage = get_storage(request)
 
