@@ -7,7 +7,7 @@ except ImportError:
 from cornice import Service
 from mozsvc.util import round_time
 
-from appsync.util import get_storage
+from appsync.util import get_storage, bad_request
 from appsync.storage import CollectionDeletedError
 from appsync.auth import create_auth, check_auth
 from appsync.respcodes import (INVALID_JSON, INVALID_SINCE_VALUE,
