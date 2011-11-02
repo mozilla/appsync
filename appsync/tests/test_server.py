@@ -5,7 +5,6 @@ import json
 from base64 import b64encode as _b64
 
 from webtest import TestApp
-from appsync import main
 from pyramid import testing
 from mozsvc.config import Config
 from mozsvc.util import resolve_name

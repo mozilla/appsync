@@ -1,11 +1,11 @@
-import base64
+from base64 import urlsafe_b64encode as b64enc
+from base64 import urlsafe_b64decode as b64dec
 import binascii
 import urllib
 try:
     import simplejson as json
 except ImportError:
-    import json
-import decimal
+    import json     # NOQA
 
 from webob.exc import HTTPBadRequest, HTTPUnauthorized
 from cornice import Service
@@ -26,20 +26,6 @@ To start the sync process you must have a BrowserID assertion.
 
 It should be an assertion from `myapps.mozillalabs.com` or another in
 a whitelist of domains."""
-
-
-## FIXME: hack because we don't have access to the JSON serializer
-## (we need to use a default function to json.dumps)
-def json_clean(o):
-    if isinstance(o, decimal.Decimal):
-        return float(o)
-    if isinstance(o, dict):
-        for key in o:
-            o[key] = json_clean(o[key])
-        return o
-    if isinstance(o, list):
-        return [json_clean(i) for i in o]
-    return o
 
 
 verify = Service(name='verify', path='/verify', description=verify_desc)
@@ -82,15 +68,18 @@ def verify_(request):
     resp_data = json.loads(resp.read())
 
     if resp_data.get('email') and resp_data['status'] == _OK:
-        collection_url = '/collections/%s/apps' % urllib.quote(resp_data['email'])
+        collection_url = '/collections/%s/apps' % \
+                urllib.quote(resp_data['email'])
         resp_data['collection_url'] = request.application_url + collection_url
-        resp_data['http_authorization'] = _create_auth(assertion, resp_data['email'])
+        resp_data['http_authorization'] = _create_auth(assertion,
+                                                       resp_data['email'])
 
-    return json_clean(resp_data)
+    return resp_data
 
 #
 # GET/POST for the collections data
 #
+
 
 def _check_auth(request):
     """Controls the Authorization header and returns the username and the
@@ -115,7 +104,7 @@ def _check_auth(request):
         raise HTTPUnauthorized()
 
     if not auth.startswith('AppSync '):
-      raise HTTPUnauthorized('Invalid token')
+        raise HTTPUnauthorized('Invalid token')
 
     auth = auth[len('AppSync '):].strip()
     auth_part = auth.split(':')
@@ -123,10 +112,9 @@ def _check_auth(request):
         raise HTTPUnauthorized('Invalid token')
 
     try:
-        auth_part = [base64.urlsafe_b64decode(part) for part in auth_part]
+        auth_part = [b64dec(part) for part in auth_part]
     except (binascii.Error, ValueError):
         raise HTTPUnauthorized('Invalid token')
-
 
     assertion, username, usersig = auth_part
 
@@ -142,9 +130,8 @@ def _check_auth(request):
 def _create_auth(assertion, username):
     ## FIXME: need to generate the user signature here
     usersig = 'XXX'
-    auth = 'AppSync %s:%s:%s' % (base64.urlsafe_b64encode(assertion),
-                                 base64.urlsafe_b64encode(username),
-                                 base64.urlsafe_b64encode(usersig))
+    auth = 'AppSync %s:%s:%s' % (b64enc(assertion), b64enc(username),
+                                 b64enc(usersig))
     return auth
 
 data = Service(name='data', path='/collections/{user}/{collection}',
@@ -211,10 +198,12 @@ def get_data(request):
         raise HTTPBadRequest()
     except ValueError:
         print 'Bad since', repr(since)
-        raise HTTPBadRequest('Invalid value for since: %r' % since, content_type='text/plain')
+        raise HTTPBadRequest('Invalid value for since: %r' % since,
+                             content_type='text/plain')
 
     if since.is_nan():
-        raise HTTPBadRequest('Got NaN value for since', content_type='text/plain')
+        raise HTTPBadRequest('Got NaN value for since',
+                             content_type='text/plain')
 
     res = {'since': since,
            'until': round_time()}
@@ -227,7 +216,7 @@ def get_data(request):
         return {'collection_deleted': {'reason': e.reason,
                                        'client_id': e.client_id}}
 
-    return json_clean(res)
+    return res
 
 
 @data.post()
@@ -281,4 +270,4 @@ def post_data(request):
 
     storage.add_applications(user, collection, apps)
 
-    return json_clean({'received': server_time})
+    return {'received': server_time}

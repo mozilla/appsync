@@ -18,7 +18,8 @@ class GetManifest(object):
         except IOError, e:
             raise exc.HTTPBadGateway('Error getting url: %s' % e)
         if r.getcode() != 200:
-            raise exc.HTTPBadGateway('URL returned error code: %s' % r.getcode())
+            raise exc.HTTPBadGateway('URL returned error code: %s' \
+                        % r.getcode())
         return Response(
             body=r.read(),
             content_type=r.headers.getheader('content-type'))

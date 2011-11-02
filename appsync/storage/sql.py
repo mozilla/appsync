@@ -75,7 +75,6 @@ and
 """
 
 
-
 _GET_QUERY = """\
 select
     last_modified, data
@@ -108,8 +107,6 @@ where
 and
     collection = :collection
 """
-
-
 
 
 def _key(*args):

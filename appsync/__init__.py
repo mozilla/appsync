@@ -24,7 +24,8 @@ def main(global_config, **settings):
 
     mock_browserid = bool(global_config.get('test'))
 
-    config = Configurator(root_factory=Root, settings=settings, autocommit=mock_browserid)
+    config = Configurator(root_factory=Root, settings=settings,
+                          autocommit=mock_browserid)
 
     # adds cornice
     config.include("cornice")
@@ -38,7 +39,6 @@ def main(global_config, **settings):
     if mock_browserid:
         # test views
         config.scan("appsync.tests.views")
-
 
     # initialize the storage
     backend = config_.get('storage', 'backend')
