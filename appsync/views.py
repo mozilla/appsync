@@ -4,13 +4,14 @@ try:
 except ImportError:
     import json     # NOQA
 
-from webob.exc import HTTPBadRequest
 from cornice import Service
 from mozsvc.util import round_time
 
 from appsync.util import get_storage
 from appsync.storage import CollectionDeletedError
 from appsync.auth import create_auth, check_auth
+from appsync.respcodes import (INVALID_JSON, INVALID_SINCE_VALUE,
+                               MISSING_VALUE)
 
 
 _BROWSERID_VERIFY = 'https://browserid.org/verify'
@@ -54,7 +55,7 @@ def verify_(request):
     """
     data = request.POST
     if 'audience' not in data or 'assertion' not in data:
-        raise HTTPBadRequest()
+        raise bad_request(MISSING_VALUE)
 
     assertion = data['assertion']
     audience = data['audience']
@@ -141,15 +142,15 @@ def get_data(request):
         since = request.GET.get('since', '0')
         since = round_time(since)
     except TypeError:
-        raise HTTPBadRequest()
+        raise bad_request(INVALID_SINCE_VALUE)
     except ValueError:
         print 'Bad since', repr(since)
-        raise HTTPBadRequest('Invalid value for since: %r' % since,
-                             content_type='text/plain')
+        raise bad_request(INVALID_SINCE_VALUE,
+                          'Invalid value for since: %r' % since)
 
     if since.is_nan():
-        raise HTTPBadRequest('Got NaN value for since',
-                             content_type='text/plain')
+        raise bad_request(INVALID_SINCE_VALUE,
+                          'Got NaN value for since')
 
     res = {'since': since,
            'until': round_time()}
@@ -196,10 +197,10 @@ def post_data(request):
         try:
             info = request.json_body
         except ValueError:
-            raise HTTPBadRequest()
+            raise bad_request(INVALID_JSON)
 
         if 'client_id' not in info:
-            raise HTTPBadRequest()
+            raise bad_request(MISSING_VALUE)
 
         client_id = info['client_id']
         reason = info.get('reason', '')
@@ -209,7 +210,7 @@ def post_data(request):
     try:
         apps = request.json_body
     except ValueError:
-        raise HTTPBadRequest()
+        raise bad_request(INVALID_JSON)
 
     # in case this fails, the error will get logged
     # and the user will get a 503 (empty body)
