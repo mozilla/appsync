@@ -5,6 +5,7 @@ try:
     import simplejson as json
 except ImportError:
     import json
+import decimal
 
 from webob.exc import HTTPBadRequest, HTTPUnauthorized
 from cornice import Service
@@ -25,6 +26,20 @@ To start the sync process you must have a BrowserID assertion.
 
 It should be an assertion from `myapps.mozillalabs.com` or another in
 a whitelist of domains."""
+
+
+## FIXME: hack because we don't have access to the JSON serializer
+## (we need to use a default function to json.dumps)
+def json_clean(o):
+    if isinstance(o, decimal.Decimal):
+        return float(o)
+    if isinstance(o, dict):
+        for key in o:
+            o[key] = json_clean(o[key])
+        return o
+    if isinstance(o, list):
+        return [json_clean(i) for i in o]
+    return o
 
 
 verify = Service(name='verify', path='/verify', description=verify_desc)
@@ -69,9 +84,9 @@ def verify_(request):
     if resp_data.get('email') and resp_data['status'] == _OK:
         collection_url = '/collections/%s/apps' % urllib.quote(resp_data['email'])
         resp_data['collection_url'] = request.application_url + collection_url
-        ## FIXME: should also include http_authentication value for future auth
+        resp_data['http_authorization'] = _create_auth(assertion, resp_data['email'])
 
-    return resp_data
+    return json_clean(resp_data)
 
 #
 # GET/POST for the collections data
@@ -108,7 +123,7 @@ def _check_auth(request):
         raise HTTPUnauthorized('Invalid token')
 
     try:
-        auth_part = [base64.decodestring(part) for part in auth_part]
+        auth_part = [base64.urlsafe_b64decode(part) for part in auth_part]
     except (binascii.Error, ValueError):
         raise HTTPUnauthorized('Invalid token')
 
@@ -123,6 +138,14 @@ def _check_auth(request):
     # XXX
     return user, collection
 
+
+def _create_auth(assertion, username):
+    ## FIXME: need to generate the user signature here
+    usersig = 'XXX'
+    auth = 'AppSync %s:%s:%s' % (base64.urlsafe_b64encode(assertion),
+                                 base64.urlsafe_b64encode(username),
+                                 base64.urlsafe_b64encode(usersig))
+    return auth
 
 data = Service(name='data', path='/collections/{user}/{collection}',
                description='Used to get and set the apps')
@@ -186,6 +209,12 @@ def get_data(request):
         since = round_time(since)
     except TypeError:
         raise HTTPBadRequest()
+    except ValueError:
+        print 'Bad since', repr(since)
+        raise HTTPBadRequest('Invalid value for since: %r' % since, content_type='text/plain')
+
+    if since.is_nan():
+        raise HTTPBadRequest('Got NaN value for since', content_type='text/plain')
 
     res = {'since': since,
            'until': round_time()}
@@ -198,7 +227,7 @@ def get_data(request):
         return {'collection_deleted': {'reason': e.reason,
                                        'client_id': e.client_id}}
 
-    return res
+    return json_clean(res)
 
 
 @data.post()
@@ -252,4 +281,4 @@ def post_data(request):
 
     storage.add_applications(user, collection, apps)
 
-    return {'received': server_time}
+    return json_clean({'received': server_time})
