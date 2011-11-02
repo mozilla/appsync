@@ -36,7 +36,7 @@ setup(name='appsync',
       entry_points = """\
       [paste.app_factory]
       main = appsync:main
+      getmanifest = appsync.getmanifest:main
       """,
       paster_plugins=['pyramid'],
       )
-
