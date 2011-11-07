@@ -1,0 +1,4 @@
+-e git://github.com/mozilla-services/mozservices.git#egg=mozsvc
+cornice
+simplejson
+SQLAlchemy

@@ -1,0 +1,3 @@
+cornice
+simplejson
+SQLAlchemy
