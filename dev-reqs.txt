@@ -10,7 +10,7 @@ PasteDeploy==1.5.0
 PasteScript==1.7.4.2
 WebOb==1.2b2
 pyramid==1.2.1
-pyramid_jinja==1.2
+pyramid_jinja2==1.2
 pyramid_debugtoolbar==0.9.4
 repoze.lru==0.4
 simplejson==2.2.1
