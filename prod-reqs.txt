@@ -1,6 +1,5 @@
 -e git://github.com/mozilla-services/mozservices.git#egg=mozsvc
 cornice==0.2
-simplejson==2.2.1
 SQLAlchemy==0.7.3
 Chameleon==2.5.3
 Jinja2==2.6
