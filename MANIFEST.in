@@ -1,0 +1,3 @@
+include *.txt
+include *.spec
+recursive-include etc *.ini *.conf
