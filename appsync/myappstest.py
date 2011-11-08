@@ -30,7 +30,6 @@ class MyAppsTest(object):
         resp = req.get_response(static_app)
         if resp.status_int == 200:
             ct = resp.content_type.lower().split(';')[0].strip()
-            print req.url, ct, 'https://myapps.mozillalabs.com' in resp.body, base
             if ct in ('text/html', 'application/javascript', 'text/javascript'):
                 resp.body = resp.body.replace('https://myapps.mozillalabs.com', base)
             resp.cache_expires()
