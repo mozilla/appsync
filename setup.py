@@ -33,10 +33,13 @@ setup(name='appsync',
       install_requires=requires,
       tests_require=requires,
       test_suite="appsync",
-      entry_points = """\
+      entry_points="""\
       [paste.app_factory]
       main = appsync:main
       getmanifest = appsync.getmanifest:main
+
+      [paste.filter_app_factory]
+      myapps = appsync.myappstest:main
       """,
       paster_plugins=['pyramid'],
       )
