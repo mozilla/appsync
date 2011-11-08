@@ -56,7 +56,7 @@ values
 
 _REMOVE_DEL = """
 delete from
-    delete
+    deleted
 where
     user = :user
 and
@@ -169,6 +169,7 @@ class SQLDatabase(object):
     def add_applications(self, user, collection, applications):
         res = self._execute(_IS_DEL, user=user, collection=collection)
         deleted = res.fetchone()
+        res.close()
         if deleted is not None:
             self._execute(_REMOVE_DEL, user=user, collection=collection)
 
