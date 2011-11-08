@@ -1,5 +1,4 @@
 cornice==0.2
-SQLAlchemy==0.7.3
 Chameleon==2.5.3
 Jinja2==2.6
 Mako==0.5
@@ -19,3 +18,5 @@ zope.component==3.11
 zope.deprecation==3.5
 zope.event==3.5.1
 zope.interface==3.8
+SQLAlchemy==0.7.3
+
