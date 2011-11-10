@@ -1,16 +1,16 @@
 App Sync
 ========
 
-This implements the [Open Web
-Application](https://apps.mozillalabs.com) synchronization protocol.
-The client is implemented in [the main openwebapps
-repository](https://github.com/mozilla/openwebapps).
+This implements the `Open Web
+Application <https://apps.mozillalabs.com>`_ synchronization protocol.
+The client is implemented in `the main openwebapps
+repository <https://github.com/mozilla/openwebapps>`_.
 
 Testing
 -------
 
 To run the server in a configuration that is fairly equivalent to the
-https://myapps.mozillalabs.com setup, use:
+https://myapps.mozillalabs.com setup, use::
 
     $ git clone https://github.com/mozilla/openwebapps.git
     $ export OPENWEBAPPS=$(pwd)/openwebapps
