@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 here = os.path.abspath(os.path.dirname(__file__))
 
-with open(os.path.join(here, 'README.txt')) as f:
+with open(os.path.join(here, 'README.rst')) as f:
     README = f.read()
 
 with open(os.path.join(here, 'CHANGES.txt')) as f:
@@ -33,10 +33,13 @@ setup(name='appsync',
       install_requires=requires,
       tests_require=requires,
       test_suite="appsync",
-      entry_points = """\
+      entry_points="""\
       [paste.app_factory]
       main = appsync:main
       getmanifest = appsync.getmanifest:main
+
+      [paste.filter_app_factory]
+      myapps = appsync.myappstest:main
       """,
       paster_plugins=['pyramid'],
       )

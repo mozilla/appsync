@@ -59,7 +59,6 @@ collections = Collection.__table__
 _TABLES.append(collections)
 
 
-
 def _key(*args):
     return ':::'.join(args)
 
@@ -127,6 +126,7 @@ class SQLDatabase(object):
     def add_applications(self, user, collection, applications):
         res = self._execute(IS_DEL, user=user, collection=collection)
         deleted = res.fetchone()
+        res.close()
         if deleted is not None:
             self._execute(REMOVE_DEL, user=user, collection=collection)
 
