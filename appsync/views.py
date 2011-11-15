@@ -6,6 +6,7 @@ except ImportError:
 
 from cornice import Service
 from mozsvc.util import round_time
+from webob import exc
 
 from appsync.util import get_storage, bad_request
 from appsync.storage import CollectionDeletedError
@@ -213,6 +214,12 @@ def post_data(request):
         reason = info.get('reason', '')
         storage.delete(user, collection, client_id, reason)
         return {'received': server_time}
+
+    elif 'lastget' in request.params:
+        last_get = round_time(float(request.params['lastget']))
+        last_modified = storage.get_last_modified(user, collection)
+        if last_modified > last_get:
+            raise exc.HTTPPreconditionFailed()
 
     try:
         apps = request.json_body

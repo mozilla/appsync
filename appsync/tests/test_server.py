@@ -5,12 +5,26 @@ import json
 from base64 import b64encode as _b64
 
 from webtest import TestApp
+from webob import exc
+from webob.dec import wsgify
 from pyramid import testing
 from mozsvc.config import Config
 from mozsvc.util import resolve_name
 
 
 _INI = os.path.join(os.path.dirname(__file__), 'tests.ini')
+
+
+class CatchErrors(object):
+    def __init__(self, app):
+        self.app = app
+
+    @wsgify
+    def __call__(self, request):
+        try:
+            return request.get_response(self.app)
+        except exc.HTTPException, e:
+            return e
 
 
 class TestSyncApp(unittest.TestCase):
@@ -28,7 +42,8 @@ class TestSyncApp(unittest.TestCase):
         self.config.registry['storage'] = klass(**dict(conf.items('storage')))
 
         wsgiapp = self.config.make_wsgi_app()
-        self.app = TestApp(wsgiapp)
+        app = CatchErrors(wsgiapp)
+        self.app = TestApp(app)
 
     def tearDown(self):
         # XXX should look at the path in the config file
@@ -167,3 +182,24 @@ class TestSyncApp(unittest.TestCase):
 
         new_uuid = data['uuid']
         self.assertNotEqual(uuid, new_uuid)
+
+
+        # now let's try the 412
+        # if lastget is used it will compare it with the
+        # timestamp of the last change
+        now = time.time() - 100
+
+        # let's change the data
+        self.app.post('/collections/tarek/blah',
+                      extra_environ=extra,
+                      params=apps,
+                      content_type='application/json')
+
+
+        # let's change it again with lastget < the last change
+        # we should get a 412
+        self.app.post('/collections/tarek/blah?lastget=%s' % now,
+                      extra_environ=extra,
+                      params=apps,
+                      content_type='application/json',
+                      status=412)

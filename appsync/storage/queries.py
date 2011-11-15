@@ -68,6 +68,17 @@ and
     collection = :collection
 """
 
+LAST_MODIFIED = """\
+select
+    max(last_modified) as last_modified
+from
+    applications
+where
+    user = :user
+and
+    collection = :collection
+"""
+
 
 GET_QUERY = """\
 select

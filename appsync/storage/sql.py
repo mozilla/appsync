@@ -135,8 +135,8 @@ class SQLDatabase(object):
         # let's see if we have an uuid
         res = self._execute(GET_UUID, user=user,
                             collection=collection)
-        uuid = res.fetchone()
-        if uuid is None:
+        res = res.fetchone()
+        if res is None:
             # we need to create one
             uuid = '%s-%s' % (now, collection)
             self._execute(ADD_UUID, user=user,
@@ -149,3 +149,10 @@ class SQLDatabase(object):
         for app in applications:
             self._execute(PUT_QUERY, user=user, collection=collection,
                           last_modified=now, data=json.dumps(app))
+
+    def get_last_modified(self, user, collection):
+        res = self._execute(LAST_MODIFIED, user=user, collection=collection)
+        res = res.fetchone()
+        if res is None:
+            return None
+        return res.last_modified
