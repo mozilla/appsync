@@ -8,7 +8,7 @@ from webtest import TestApp
 from webob import exc
 from webob.dec import wsgify
 from pyramid import testing
-from mozsvc.config import Config
+from mozsvc.config import load_into_settings
 from mozsvc.util import resolve_name
 
 
@@ -29,17 +29,14 @@ class CatchErrors(object):
 
 class TestSyncApp(unittest.TestCase):
     def setUp(self):
-        # creating a test application
         self.config = testing.setUp()
-        self.config.include("cornice")
-        self.config.include("mozsvc")
-        self.config.scan("appsync.views")
-        self.config.scan("appsync.tests.views")
 
-        conf = Config(_INI)
-        backend = conf.get('storage', 'backend')
-        klass = resolve_name(backend)
-        self.config.registry['storage'] = klass(**dict(conf.items('storage')))
+        # creating a test application
+        settings = {}
+        load_into_settings(_INI, settings)
+        self.config.add_settings(settings)
+        self.config.include("appsync")
+        self.config.scan("appsync.tests.views")
 
         wsgiapp = self.config.make_wsgi_app()
         app = CatchErrors(wsgiapp)
