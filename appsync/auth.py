@@ -15,11 +15,11 @@ def check_auth(request):
 
     - If the header is not present or unrecognized
     - If the request path is not *owned* by that user
-    - If the user signature does not match the user
+    - the database token
 
     The header is of the form:
 
-        AppSync b64(assertion):b64(username):b64(usersig)
+        AppSync b64(assertion):b64(username):b64(token)
 
     """
     user = request.matchdict['user']
@@ -42,7 +42,7 @@ def check_auth(request):
     except (binascii.Error, ValueError):
         raise HTTPUnauthorized('Invalid token')
 
-    assertion, username, usersig = auth_part
+    assertion, username, dbtoken = auth_part
 
     # let's reject the call if the url is not owned by the user
     if user != username:
@@ -50,12 +50,11 @@ def check_auth(request):
 
     # need to verify the user signature here
     # XXX
-    return user, collection
+    return user, collection, dbtoken
 
 
-def create_auth(assertion, username):
-    ## FIXME: need to generate the user signature here
-    usersig = 'XXX'
+def create_auth(assertion, username, token):
+
     auth = 'AppSync %s:%s:%s' % (b64enc(assertion), b64enc(username),
-                                 b64enc(usersig))
+                                 b64enc(token))
     return auth

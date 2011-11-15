@@ -97,20 +97,20 @@ class SQLDatabase(object):
     def _execute(self, *args, **kw):
         return execute_retry(self.engine, *args, **kw)
 
-    def delete(self, user, collection, client_id, reason=''):
+    def delete(self, user, collection, client_id, reason, token):
         self._execute(DEL_QUERY, user=user, collection=collection)
         self._execute(ADD_DEL, user=user, collection=collection,
                       reason=reason, client_id=client_id)
         self._execute(DEL_UUID, user=user, collection=collection)
 
-    def get_uuid(self, user, collection):
+    def get_uuid(self, user, collection, token):
         res = self._execute(GET_UUID, user=user, collection=collection)
         res = res.fetchone()
         if res is None:
             return None
         return res.uuid
 
-    def get_applications(self, user, collection, since=0):
+    def get_applications(self, user, collection, since, token):
         res = self._execute(IS_DEL, user=user, collection=collection)
         deleted = res.fetchone()
         if deleted is not None:
@@ -123,7 +123,7 @@ class SQLDatabase(object):
         # XXX dumb: serialize/unserialize round trip for nothing
         return [json.loads(app.data) for app in apps]
 
-    def add_applications(self, user, collection, applications):
+    def add_applications(self, user, collection, applications, token):
         res = self._execute(IS_DEL, user=user, collection=collection)
         deleted = res.fetchone()
         res.close()
@@ -150,9 +150,24 @@ class SQLDatabase(object):
             self._execute(PUT_QUERY, user=user, collection=collection,
                           last_modified=now, data=json.dumps(app))
 
-    def get_last_modified(self, user, collection):
+    def get_last_modified(self, user, collection, token):
         res = self._execute(LAST_MODIFIED, user=user, collection=collection)
         res = res.fetchone()
         if res is None:
             return None
         return res.last_modified
+
+    def verify(self, assertion, audience):
+        """Authenticate then return a token"""
+        ## FIXME: basic HTTP errors should be caught and handled
+        ## FIXME: browser certifications
+        resp = urllib.urlopen(
+            _BROWSERID_VERIFY,
+            urllib.urlencode(dict(assertion=assertion, audience=audience)))
+        resp_data = json.loads(resp.read())
+
+        token = 'CREATE A TOKEN HERE XXX'
+        if resp_data.get('email') and resp_data['status'] == _OK:
+            return email, token
+
+        return None

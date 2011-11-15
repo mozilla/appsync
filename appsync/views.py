@@ -26,7 +26,8 @@ verify_desc = """\
 To start the sync process you must have a BrowserID assertion.
 
 It should be an assertion from `myapps.mozillalabs.com` or another in
-a whitelist of domains."""
+a whitelist of domains.
+"""
 
 
 verify = Service(name='verify', path='/verify', description=verify_desc)
@@ -61,21 +62,19 @@ def verify_(request):
     assertion = data['assertion']
     audience = data['audience']
 
-    ## FIXME: basic HTTP errors should be caught and handled
-    ## FIXME: browser certifications
-    resp = urllib.urlopen(
-        _BROWSERID_VERIFY,
-        urllib.urlencode(dict(assertion=assertion, audience=audience)))
-    resp_data = json.loads(resp.read())
+    storage = get_storage(request)
 
-    if resp_data.get('email') and resp_data['status'] == _OK:
-        collection_url = '/collections/%s/apps' % \
-                urllib.quote(resp_data['email'])
-        resp_data['collection_url'] = request.application_url + collection_url
-        resp_data['http_authorization'] = create_auth(assertion,
-                                                      resp_data['email'])
+    res = storage.verify(assertion, audience)
+    if storage is None:
+        raise exc.HTTPUnauthorized()
 
-    return resp_data
+    email, dbtoken = res
+
+    resp = {'email': email}
+    collection_url = '/collections/%s/apps' % urllib.quote(email)
+    resp['collection_url'] = request.application_url + collection_url
+    resp['http_authorization'] = create_auth(assertion, email, dbtoken)
+    return resp
 
 #
 # GET/POST for the collections data
@@ -138,7 +137,7 @@ def get_data(request):
     the server (unless you ignore the application in favor of a
     newer local version).
     """
-    user, collection = check_auth(request)
+    user, collection, dbtoken = check_auth(request)
 
     try:
         since = request.GET.get('since', '0')
@@ -158,11 +157,11 @@ def get_data(request):
 
     res = {'since': since,
            'until': round_time(),
-           'uuid': storage.get_uuid(user, collection)}
+           'uuid': storage.get_uuid(user, collection, dbtoken)}
 
     try:
         res['applications'] = storage.get_applications(user, collection,
-                                                       since)
+                                                       since, token=dbtoken)
     except CollectionDeletedError, e:
         return {'collection_deleted': {'reason': e.reason,
                                        'client_id': e.client_id}}
@@ -196,7 +195,7 @@ def post_data(request):
     since that date, we send back a 412 Precondition Failed.
 
     """
-    user, collection = check_auth(request)
+    user, collection, dbtoken = check_auth(request)
     server_time = round_time()
     storage = get_storage(request)
 
@@ -212,12 +211,13 @@ def post_data(request):
 
         client_id = info['client_id']
         reason = info.get('reason', '')
-        storage.delete(user, collection, client_id, reason)
+        storage.delete(user, collection, client_id, reason, token=dbtoken)
         return {'received': server_time}
 
     elif 'lastget' in request.params:
         last_get = round_time(float(request.params['lastget']))
-        last_modified = storage.get_last_modified(user, collection)
+        last_modified = storage.get_last_modified(user, collection,
+                                                  token=dbtoken)
         if last_modified > last_get:
             raise exc.HTTPPreconditionFailed()
 
@@ -229,6 +229,6 @@ def post_data(request):
     # in case this fails, the error will get logged
     # and the user will get a 503 (empty body)
 
-    storage.add_applications(user, collection, apps)
+    storage.add_applications(user, collection, apps, token=dbtoken)
 
     return {'received': server_time}
