@@ -11,6 +11,7 @@ from mozsvc.util import round_time
 
 from appsync import logger
 from appsync.storage import CollectionDeletedError
+from appsync.storage.queries import *
 
 
 _TABLES = []
@@ -46,78 +47,27 @@ applications = Application.__table__
 _TABLES.append(applications)
 
 
-_ADD_DEL = """
-insert into deleted
-    (user, collection, reason, client_id)
-values
-    (:user, :collection, :reason, :client_id)
-"""
+class Collection(_Base):
+    __tablename__ = 'collections'
+    id = Column(Integer, primary_key=True)
+    uuid = Column(String(256), nullable=False)
+    user = Column(String(256), nullable=False)
+    collection = Column(String(256), nullable=False)
 
 
-_REMOVE_DEL = """
-delete from
-    delete
-where
-    user = :user
-and
-    collection = :collection
-"""
+collections = Collection.__table__
+_TABLES.append(collections)
 
-_IS_DEL = """
-select
-    client_id, reason
-from
-    deleted
-where
-    user = :user
-and
-    collection = :collection
-"""
-
-
-_GET_QUERY = """\
-select
-    last_modified, data
-from
-    applications
-where
-    user = :user
-and
-    collection = :collection
-and
-    last_modified >= :since
-order by
-    last_modified
-"""
-
-
-# XXX no bulk inserts in sqlite
-_PUT_QUERY = """
-insert into applications
-    (user, collection, last_modified, data)
-values
-    (:user, :collection, :last_modified, :data)
-"""
-
-_DEL_QUERY = """
-delete from
-    applications
-where
-    user = :user
-and
-    collection = :collection
-"""
 
 
 def _key(*args):
     return ':::'.join(args)
 
 
-def safe_execute(engine, *args, **kwargs):
+def execute_retry(engine, *args, **kwargs):
     try:
         return engine.execute(*args, **kwargs)
     except (OperationalError, TimeoutError), exc:
-        # beyond this point, the connector is removed from the pool
         retry = '2013' in str(exc)
     try:
         if retry:
@@ -146,35 +96,56 @@ class SQLDatabase(object):
                 table.create(checkfirst=True)
 
     def _execute(self, *args, **kw):
-        return safe_execute(self.engine, *args, **kw)
+        return execute_retry(self.engine, *args, **kw)
 
     def delete(self, user, collection, client_id, reason=''):
-        self._execute(_DEL_QUERY, user=user, collection=collection)
-        self._execute(_ADD_DEL, user=user, collection=collection,
+        self._execute(DEL_QUERY, user=user, collection=collection)
+        self._execute(ADD_DEL, user=user, collection=collection,
                       reason=reason, client_id=client_id)
+        self._execute(DEL_UUID, user=user, collection=collection)
+
+    def get_uuid(self, user, collection):
+        res = self._execute(GET_UUID, user=user, collection=collection)
+        res = res.fetchone()
+        if res is None:
+            return None
+        return res.uuid
 
     def get_applications(self, user, collection, since=0):
-        res = self._execute(_IS_DEL, user=user, collection=collection)
+        res = self._execute(IS_DEL, user=user, collection=collection)
         deleted = res.fetchone()
         if deleted is not None:
             raise CollectionDeletedError(deleted.client_id, deleted.reason)
 
         since = int(round_time(since) * 100)
-        apps = self._execute(_GET_QUERY, user=user, collection=collection,
+        apps = self._execute(GET_QUERY, user=user, collection=collection,
                              since=since)
 
         # XXX dumb: serialize/unserialize round trip for nothing
         return [json.loads(app.data) for app in apps]
 
     def add_applications(self, user, collection, applications):
-        res = self._execute(_IS_DEL, user=user, collection=collection)
+        res = self._execute(IS_DEL, user=user, collection=collection)
         deleted = res.fetchone()
         if deleted is not None:
-            self._execute(_REMOVE_DEL, user=user, collection=collection)
+            self._execute(REMOVE_DEL, user=user, collection=collection)
 
         now = int(round_time() * 100)
 
+        # let's see if we have an uuid
+        res = self._execute(GET_UUID, user=user,
+                            collection=collection)
+        uuid = res.fetchone()
+        if uuid is None:
+            # we need to create one
+            uuid = '%s-%s' % (now, collection)
+            self._execute(ADD_UUID, user=user,
+                          collection=collection, uuid=uuid)
+        else:
+            uuid = res.uuid
+
+
         # the *real* storage will do bulk inserts of course
         for app in applications:
-            self._execute(_PUT_QUERY, user=user, collection=collection,
+            self._execute(PUT_QUERY, user=user, collection=collection,
                           last_modified=now, data=json.dumps(app))

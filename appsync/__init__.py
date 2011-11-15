@@ -40,7 +40,7 @@ def main(global_config, **settings):
         # test views
         config.scan("appsync.tests.views")
 
-    # initialize the storage
+    # initialize the storage backend
     backend = config_.get('storage', 'backend')
     klass = resolve_name(backend)
     config.registry['storage'] = klass(**dict(config_.items('storage')))

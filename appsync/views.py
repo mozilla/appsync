@@ -96,6 +96,7 @@ def get_data(request):
     server will return an object::
 
         {until: timestamp,
+         uuid: someuniquevalue,  # using a timestamp XXXX
          incomplete: bool, applications: {origin: {...},
                                                    ...} }
 
@@ -152,10 +153,12 @@ def get_data(request):
         raise bad_request(INVALID_SINCE_VALUE,
                           'Got NaN value for since')
 
-    res = {'since': since,
-           'until': round_time()}
-
     storage = get_storage(request)
+
+    res = {'since': since,
+           'until': round_time(),
+           'uuid': storage.get_uuid(user, collection)}
+
     try:
         res['applications'] = storage.get_applications(user, collection,
                                                        since)
@@ -177,7 +180,7 @@ def post_data(request):
 
     The updates are sent with::
 
-        POST /collections/{user}/{collection}
+        POST /collections/{user}/{collection}?lastget=somedate
 
         {origin: {...}, ...}
 
@@ -186,6 +189,10 @@ def post_data(request):
     The response is only::
 
         {received: timestamp}
+
+    XXX
+    if lastget (timestamp) was provided and the collection has been changed
+    since that date, we send back a 412 Precondition Failed.
 
     """
     user, collection = check_auth(request)
