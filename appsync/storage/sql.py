@@ -7,13 +7,14 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base, Column
 from sqlalchemy import Integer, String, Text
 
+from zope.interface import implements
+
 from mozsvc.exceptions import BackendError
 from mozsvc.util import round_time
 
 from appsync import logger
-from appsync.storage import CollectionDeletedError
+from appsync.storage import IAppSyncDatabase, CollectionDeletedError
 from appsync.storage import queries
-
 
 _TABLES = []
 _OK = 'okay'
@@ -84,6 +85,7 @@ def execute_retry(engine, *args, **kwargs):
 
 
 class SQLDatabase(object):
+    implements(IAppSyncDatabase)
 
     def __init__(self, **options):
         #sqlkw = {'pool_size': int(options.get('pool_size', 1)),
