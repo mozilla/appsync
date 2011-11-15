@@ -1,4 +1,4 @@
--e git://github.com/mozilla-services/mozservices.git#egg=mozsvc
+mozsvc==0.1
 cornice==0.2
 SQLAlchemy==0.7.3
 Chameleon==2.5.3

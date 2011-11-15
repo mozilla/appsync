@@ -19,4 +19,4 @@ zope.deprecation==3.5
 zope.event==3.5.1
 zope.interface==3.8
 SQLAlchemy==0.7.3
-
+mozsvc=0.1
