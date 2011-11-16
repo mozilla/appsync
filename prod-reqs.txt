@@ -1,3 +1,4 @@
+venusian==1.0a2
 cornice==0.2
 Chameleon==2.5.3
 Jinja2==2.6
@@ -20,3 +21,4 @@ zope.event==3.5.1
 zope.interface==3.8
 SQLAlchemy==0.7.3
 mozsvc=0.1
+setuptools==0.6c11
