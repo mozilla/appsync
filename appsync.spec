@@ -14,7 +14,7 @@ BuildRoot: %{_tmppath}/%{pythonname}-%{version}-%{release}-buildroot
 Prefix: %{_prefix}
 BuildArch: noarch
 Vendor: Tarek Ziade <tarek@mozilla.com>
-Requires: nginx memcached gunicorn python27 python27-setuptools python27-webob python27-paste python27-pastedeploy python27-sqlalchemy python27-mako python27-simplejson python27-pastescript python27-mako python27-markusafe python27-chameleon python27-jinja2 python27-pyramid python27-pyramid_jinja python27-pyramid_debugtoolbar python27-repoze.lru python27-translationstring python27-wsgi_intercept python27-zope.component python27-zope.deprecation python27-zope.event python27-zope.interface
+Requires: nginx memcached gunicorn python27 python27-setuptools python27-webob python27-paste python27-pastedeploy python27-sqlalchemy python27-mako python27-simplejson python27-pastescript python27-mako python27-markupsafe python27-chameleon python27-jinja2 python27-pyramid python27-pyramid_jinja2 python27-pyramid_debugtoolbar python27-repoze.lru python27-translationstring python27-wsgi_intercept python27-zope.component python27-zope.deprecation python27-zope.event python27-zope.interface python27-venusian
 
 Url: https://github.com/mozilla/appsync
 
