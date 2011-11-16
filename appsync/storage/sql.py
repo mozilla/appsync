@@ -1,6 +1,7 @@
 import traceback
 
 import simplejson as json
+import urllib
 from sqlalchemy.exc import OperationalError, TimeoutError
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base, Column
@@ -11,10 +12,12 @@ from mozsvc.util import round_time
 
 from appsync import logger
 from appsync.storage import CollectionDeletedError
-from appsync.storage.queries import *
+from appsync.storage import queries
 
 
 _TABLES = []
+_OK = 'okay'
+_BROWSERID_VERIFY = 'https://browserid.org/verify'
 _Base = declarative_base()
 
 
@@ -98,60 +101,59 @@ class SQLDatabase(object):
         return execute_retry(self.engine, *args, **kw)
 
     def delete(self, user, collection, client_id, reason, token):
-        self._execute(DEL_QUERY, user=user, collection=collection)
-        self._execute(ADD_DEL, user=user, collection=collection,
+        self._execute(queries.DEL_QUERY, user=user, collection=collection)
+        self._execute(queries.ADD_DEL, user=user, collection=collection,
                       reason=reason, client_id=client_id)
-        self._execute(DEL_UUID, user=user, collection=collection)
+        self._execute(queries.DEL_UUID, user=user, collection=collection)
 
     def get_uuid(self, user, collection, token):
-        res = self._execute(GET_UUID, user=user, collection=collection)
+        res = self._execute(queries.GET_UUID, user=user, collection=collection)
         res = res.fetchone()
         if res is None:
             return None
         return res.uuid
 
     def get_applications(self, user, collection, since, token):
-        res = self._execute(IS_DEL, user=user, collection=collection)
+        res = self._execute(queries.IS_DEL, user=user, collection=collection)
         deleted = res.fetchone()
         if deleted is not None:
             raise CollectionDeletedError(deleted.client_id, deleted.reason)
 
         since = int(round_time(since) * 100)
-        apps = self._execute(GET_QUERY, user=user, collection=collection,
+        apps = self._execute(queries.GET_QUERY, user=user, collection=collection,
                              since=since)
 
         # XXX dumb: serialize/unserialize round trip for nothing
         return [json.loads(app.data) for app in apps]
 
     def add_applications(self, user, collection, applications, token):
-        res = self._execute(IS_DEL, user=user, collection=collection)
+        res = self._execute(queries.IS_DEL, user=user, collection=collection)
         deleted = res.fetchone()
         res.close()
         if deleted is not None:
-            self._execute(REMOVE_DEL, user=user, collection=collection)
+            self._execute(queries.REMOVE_DEL, user=user, collection=collection)
 
         now = int(round_time() * 100)
 
         # let's see if we have an uuid
-        res = self._execute(GET_UUID, user=user,
+        res = self._execute(queries.GET_UUID, user=user,
                             collection=collection)
         res = res.fetchone()
         if res is None:
             # we need to create one
             uuid = '%s-%s' % (now, collection)
-            self._execute(ADD_UUID, user=user,
+            self._execute(queries.ADD_UUID, user=user,
                           collection=collection, uuid=uuid)
         else:
             uuid = res.uuid
 
-
         # the *real* storage will do bulk inserts of course
         for app in applications:
-            self._execute(PUT_QUERY, user=user, collection=collection,
+            self._execute(queries.PUT_QUERY, user=user, collection=collection,
                           last_modified=now, data=json.dumps(app))
 
     def get_last_modified(self, user, collection, token):
-        res = self._execute(LAST_MODIFIED, user=user, collection=collection)
+        res = self._execute(queries.LAST_MODIFIED, user=user, collection=collection)
         res = res.fetchone()
         if res is None:
             return None
@@ -168,6 +170,6 @@ class SQLDatabase(object):
 
         token = 'CREATE A TOKEN HERE XXX'
         if resp_data.get('email') and resp_data['status'] == _OK:
-            return email, token
+            return resp_data['email'], token
 
         return None
