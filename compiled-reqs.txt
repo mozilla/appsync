@@ -1,0 +1,7 @@
+# These requirements all include binary components, that cannot be
+# installed into the vendor/ library
+coverage
+SQLAlchemy==0.7.3
+MarkupSafe==0.15
+zope.interface==3.8
+simplejson==2.2.1
