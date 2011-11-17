@@ -34,8 +34,10 @@ class MyAppsTest(object):
         resp = req.get_response(static_app)
         if resp.status_int == 200:
             ct = resp.content_type.lower().split(';')[0].strip()
-            if ct in ('text/html', 'application/javascript', 'text/javascript'):
-                resp.body = resp.body.replace('https://myapps.mozillalabs.com', base)
+            if ct in ('text/html', 'application/javascript',
+                      'text/javascript'):
+                resp.body = \
+                    resp.body.replace('https://myapps.mozillalabs.com', base)
             resp.cache_expires()
         if resp.status_int == 404:
             resp = orig_req.get_response(self.app)
@@ -49,8 +51,10 @@ def main(app, global_conf, **settings):
     openwebapps = os.path.expandvars(openwebapps)
     openwebapps = os.path.expanduser(openwebapps)
     if (not os.path.exists(openwebapps)
-        or not os.path.exists(os.path.join(openwebapps, 'site/jsapi/include.js'))):
-        raise ValueError("The openwebapps value (%s / %s) doesn't seem to be a valid checkout"
+        or not os.path.exists(os.path.join(openwebapps,
+            'site/jsapi/include.js'))):
+        raise ValueError("The openwebapps value (%s / %s) "
+                         "doesn't seem to be a valid checkout"
                          % (orig, openwebapps))
     apps = os.path.expandvars(os.path.expanduser(settings.get('apps', '')))
     return MyAppsTest(app, openwebapps, apps)
