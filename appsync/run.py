@@ -46,7 +46,7 @@ from ConfigParser import NoSectionError
 os.environ['PYTHON_EGG_CACHE'] = '/tmp/python-eggs'
 
 # setting up logging
-ini_file = os.path.join('/etc', 'appsync', 'appsync-prod.ini')
+ini_file = os.path.join('/var', 'appsync', 'etc', 'appsync-dev.ini')
 try:
     fileConfig(ini_file)
 except NoSectionError:
@@ -54,4 +54,4 @@ except NoSectionError:
 
 # running the app using Paste
 from paste.deploy import loadapp
-application = loadapp('config:%s' % ini_file)
+application = loadapp('config:%s#site' % ini_file)
