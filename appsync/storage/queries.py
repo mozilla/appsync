@@ -90,7 +90,7 @@ where
 and
     collection = :collection
 and
-    last_modified >= :since
+    last_modified > :since
 order by
     last_modified
 """
