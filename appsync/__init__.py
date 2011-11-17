@@ -1,48 +1,41 @@
-import os
 import logging
 
-from pyramid.config import Configurator
-from mozsvc.config import Config
-from mozsvc.util import resolve_name
+from pyramid.settings import asbool
 
-from appsync.resources import Root
+from mozsvc.config import get_configurator
+from mozsvc.plugin import load_and_register
 
 
 logger = logging.getLogger('appsync')
 
 
-def main(global_config, **settings):
-    config_file = global_config['__file__']
-    config_file = os.path.abspath(
-                    os.path.normpath(
-                    os.path.expandvars(
-                        os.path.expanduser(
-                        config_file))))
-
-    settings['config'] = config_ = Config(config_file)
-    conf_dir, _ = os.path.split(config_file)
-
-    mock_browserid = bool(global_config.get('test'))
-
-    config = Configurator(root_factory=Root, settings=settings,
-                          autocommit=mock_browserid)
-
+def includeme(config):
     # adds cornice
     config.include("cornice")
 
     # adds Mozilla default views
     config.include("mozsvc")
 
-    # local views
+    # adds local views
     config.scan("appsync.views")
 
-    if mock_browserid:
-        # test views
-        config.scan("appsync.tests.views")
+    # initializes the storage backend
+    load_and_register("storage", config)
 
-    # initialize the storage backend
-    backend = config_.get('storage', 'backend')
-    klass = resolve_name(backend)
-    config.registry['storage'] = klass(**dict(config_.items('storage')))
+
+def main(global_config, **settings):
+    config = get_configurator(global_config, **settings)
+
+    # Use autocommit if we're in testing mode.
+    mock_browserid = asbool(global_config.get('test'))
+    if mock_browserid:
+        config.autocommit = True
+
+    # Get all the default config for appsync.
+    config.include(includeme)
+
+    # Add testing views if we're in testing mode.
+    if mock_browserid:
+        config.scan("appsync.tests.views")
 
     return config.make_wsgi_app()

@@ -7,12 +7,14 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base, Column
 from sqlalchemy import Integer, String, Text
 
+from zope.interface import implements
+
 from mozsvc.exceptions import BackendError
 from mozsvc.util import round_time
 
 from appsync import logger
-from appsync.storage import CollectionDeletedError
 from appsync.storage import queries
+from appsync.storage import IAppSyncDatabase, CollectionDeletedError
 
 
 _TABLES = []
@@ -84,6 +86,7 @@ def execute_retry(engine, *args, **kwargs):
 
 
 class SQLDatabase(object):
+    implements(IAppSyncDatabase)
 
     def __init__(self, **options):
         #sqlkw = {'pool_size': int(options.get('pool_size', 1)),
@@ -120,8 +123,8 @@ class SQLDatabase(object):
             raise CollectionDeletedError(deleted.client_id, deleted.reason)
 
         since = int(round_time(since) * 100)
-        apps = self._execute(queries.GET_QUERY, user=user, collection=collection,
-                             since=since)
+        apps = self._execute(queries.GET_QUERY, user=user,
+                             collection=collection, since=since)
 
         # XXX dumb: serialize/unserialize round trip for nothing
         return [json.loads(app.data) for app in apps]
@@ -153,7 +156,8 @@ class SQLDatabase(object):
                           last_modified=now, data=json.dumps(app))
 
     def get_last_modified(self, user, collection, token):
-        res = self._execute(queries.LAST_MODIFIED, user=user, collection=collection)
+        res = self._execute(queries.LAST_MODIFIED, user=user,
+                            collection=collection)
         res = res.fetchone()
         if res is None:
             return None

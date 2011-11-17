@@ -2,14 +2,12 @@ import os
 import unittest
 import time
 import json
-from base64 import b64encode as _b64
 
 from webtest import TestApp
 from webob import exc
 from webob.dec import wsgify
 from pyramid import testing
-from mozsvc.config import Config
-from mozsvc.util import resolve_name
+from mozsvc.config import load_into_settings
 
 
 _INI = os.path.join(os.path.dirname(__file__), 'tests.ini')
@@ -27,41 +25,38 @@ class CatchErrors(object):
             return e
 
 
+
 class TestSyncApp(unittest.TestCase):
+
     def setUp(self):
-        # creating a test application
         self.config = testing.setUp()
-        self.config.include("cornice")
-        self.config.include("mozsvc")
-        self.config.scan("appsync.views")
+        # creating a test application
+        settings = {}
+        load_into_settings(_INI, settings)
+        self.config.add_settings(settings)
+        self.config.include("appsync")
         self.config.scan("appsync.tests.views")
-
-        conf = Config(_INI)
-        backend = conf.get('storage', 'backend')
-        klass = resolve_name(backend)
-        self.config.registry['storage'] = klass(**dict(conf.items('storage')))
-
         wsgiapp = self.config.make_wsgi_app()
         app = CatchErrors(wsgiapp)
         self.app = TestApp(app)
+        _init = True
 
     def tearDown(self):
         # XXX should look at the path in the config file
         if os.path.exists('/tmp/appsync-test.db'):
             os.remove('/tmp/appsync-test.db')
 
-    def test_protocol(self):
+    def test_verify(self):
+        # use the mock verification view
+        self.config.scan("appsync.tests.views")
+
         # missing 'audience'  => 400
         login_data = {'assertion': 'tarek'}
-
-        # XXX why this not working ?
-        #self.app.post('/verify', login_data, status=400)
+        self.app.post('/verify', login_data, status=400)
 
         # missing 'assertion'  => 400
         login_data = {'audience': 'tarek'}
-
-        # XXX why this not working ?
-        #self.app.post('/verify', login_data, status=400)
+        self.app.post('/verify', login_data, status=400)
 
         # looking good, but bad assertion
         login_data = {'assertion': 'tarek', 'audience': 'bouh'}
@@ -84,10 +79,10 @@ class TestSyncApp(unittest.TestCase):
         self.assertTrue(res['valid-until'] > time.time())
         self.assertTrue(res['issuer'], 'browserid.org')
 
-        # building the auth header
-        auth = 'AppSync %s:%s:%s' % (_b64('a=tarek'), _b64('tarek'),
-                                     _b64('somesig'))
-
+        #def test_protocol(self):
+        # start a session
+        # get the auth header
+        auth = res["http_authorization"].encode("ascii")
         extra = {'HTTP_AUTHORIZATION': auth}
 
         # getting the collection 'blah'
@@ -112,8 +107,8 @@ class TestSyncApp(unittest.TestCase):
         self.assertEqual(len(data['applications']), 0)
 
         # ok let's put some data up
-        app1 = {'last_modified': time.time() + 0.1}
-        app2 = {'last_modified': time.time() + 0.1}
+        app1 = {'origin': 'app1', 'last_modified': time.time() + 0.1}
+        app2 = {'origin': 'app2', 'last_modified': time.time() + 0.1}
 
         apps = json.dumps([app1, app2])
 
@@ -156,7 +151,6 @@ class TestSyncApp(unittest.TestCase):
 
         uuid = data['uuid']
 
-
         # deleting that collection
         delete = {'client_id': 'client1',
                   'reason': 'well...'}
@@ -183,7 +177,6 @@ class TestSyncApp(unittest.TestCase):
         new_uuid = data['uuid']
         self.assertNotEqual(uuid, new_uuid)
 
-
         # now let's try the 412
         # if lastget is used it will compare it with the
         # timestamp of the last change
@@ -194,7 +187,6 @@ class TestSyncApp(unittest.TestCase):
                       extra_environ=extra,
                       params=apps,
                       content_type='application/json')
-
 
         # let's change it again with lastget < the last change
         # we should get a 412
