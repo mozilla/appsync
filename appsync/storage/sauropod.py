@@ -13,6 +13,21 @@ from appsync.storage import IAppSyncDatabase
 from appsync.storage import CollectionDeletedError, EditConflictError
 
 
+def decode(assertion):
+    assertion = assertion.replace('-', '+')
+    assertion = assertion.replace('_', '+')
+    pad = len(assertion) % 4
+    if pad not in (0, 2, 3):
+        raise TypeError()
+  
+    if pad == 2:
+        assertion += '=='
+    else:
+        assertion += '='	    	    
+            
+    return base64.b64decode(assertion)
+
+
 class SauropodDatabase(object):
     """AppSync storage engine built on the preliminary Sauropod API.
 
@@ -92,12 +107,12 @@ class SauropodDatabase(object):
     def _get_userid_from_assertion(self, assertion):
         """Extract the userid from a BrowserID assertion."""
         try:
-            data = json.loads(base64.b64decode(assertion))
+            data = json.loads(decode(assertion))
         except (ValueError, TypeError):
             return assertion
         else:
             payload = data["certificates"][0].split(".")[1]
-            payload = json.loads(base64.b64decode(payload))
+            payload = json.loads(decode(payload))
             return payload["principal"]["email"]
 
     def _resume_session(self, token):
