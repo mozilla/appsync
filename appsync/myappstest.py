@@ -12,9 +12,10 @@ from appsync.getmanifest import GetManifest
 
 
 class MyAppsTest(object):
-    def __init__(self, app, openwebapps):
+    def __init__(self, app, openwebapps, apps):
         self.app = app
         self.openwebapps = openwebapps
+        self.apps = apps
 
     @wsgify
     def __call__(self, req):
@@ -24,6 +25,9 @@ class MyAppsTest(object):
             return GetManifest()
         if req.path_info.startswith('/sync'):
             path = os.path.join(self.openwebapps)
+        elif req.path_info.startswith('/apps') and self.apps:
+            path = self.apps
+            req.path_info_pop()
         else:
             path = os.path.join(self.openwebapps, 'site')
         static_app = StaticURLParser(path)
@@ -48,4 +52,5 @@ def main(app, global_conf, **settings):
         or not os.path.exists(os.path.join(openwebapps, 'site/jsapi/include.js'))):
         raise ValueError("The openwebapps value (%s / %s) doesn't seem to be a valid checkout"
                          % (orig, openwebapps))
-    return MyAppsTest(app, openwebapps)
+    apps = os.path.expandvars(os.path.expanduser(settings.get('apps', '')))
+    return MyAppsTest(app, openwebapps, apps)
