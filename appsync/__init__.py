@@ -1,4 +1,5 @@
 import logging
+import os
 
 from pyramid.settings import asbool
 
@@ -27,7 +28,7 @@ def main(global_config, **settings):
     config = get_configurator(global_config, **settings)
 
     # Use autocommit if we're in testing mode.
-    mock_browserid = asbool(global_config.get('test'))
+    mock_browserid = asbool(os.path.expandvars(global_config.get('test')))
     if mock_browserid:
         config.autocommit = True
 
@@ -37,5 +38,6 @@ def main(global_config, **settings):
     # Add testing views if we're in testing mode.
     if mock_browserid:
         config.scan("appsync.tests.views")
+        config.registry['mock_browserid'] = True
 
     return config.make_wsgi_app()
