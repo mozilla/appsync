@@ -22,7 +22,7 @@ def main(global_config, **settings):
     settings['config'] = config_ = Config(config_file)
     conf_dir, _ = os.path.split(config_file)
 
-    mock_browserid = bool(global_config.get('test'))
+    mock_browserid = bool(os.path.expandvars(global_config.get('test', '')))
 
     config = Configurator(root_factory=Root, settings=settings,
                           autocommit=mock_browserid)
@@ -39,6 +39,7 @@ def main(global_config, **settings):
     if mock_browserid:
         # test views
         config.scan("appsync.tests.views")
+        config.registry['mock_browserid'] = True
 
     # initialize the storage backend
     backend = config_.get('storage', 'backend')

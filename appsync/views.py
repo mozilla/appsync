@@ -15,10 +15,6 @@ from appsync.respcodes import (INVALID_JSON, INVALID_SINCE_VALUE,
                                MISSING_VALUE)
 
 
-_BROWSERID_VERIFY = 'https://browserid.org/verify'
-_OK = 'okay'
-
-
 #
 # /verify service, that adds a user session
 #
@@ -65,9 +61,11 @@ def verify_(request):
     storage = get_storage(request)
 
     res = storage.verify(assertion, audience)
-    if storage is None:
-        raise exc.HTTPUnauthorized()
-
+    if not res or not res[0]:
+        resp = {'status': 'failed'}
+        if res and res[1]:
+            resp.update(res[1])
+        return resp
     email, dbtoken = res
 
     resp = {'email': email}

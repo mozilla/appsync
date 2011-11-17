@@ -41,4 +41,5 @@ def mock_verify(request):
             'audience': audience,
             'valid-until': round_time() + _VALIDITY_DURATION,
             'issuer': _DOMAIN,
-            'collection_url': request.application_url + collection_url}
+            'collection_url': request.application_url + collection_url,
+            'http_authorization': 'mock'}
