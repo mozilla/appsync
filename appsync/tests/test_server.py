@@ -2,7 +2,6 @@ import os
 import unittest
 import time
 import json
-from base64 import b64encode as _b64
 
 from webtest import TestApp
 from webob import exc
@@ -36,7 +35,6 @@ class TestSyncApp(unittest.TestCase):
         self.config.add_settings(settings)
         self.config.include("appsync")
         self.config.scan("appsync.tests.views")
-
         wsgiapp = self.config.make_wsgi_app()
         app = CatchErrors(wsgiapp)
         self.app = TestApp(app)
@@ -46,18 +44,17 @@ class TestSyncApp(unittest.TestCase):
         if os.path.exists('/tmp/appsync-test.db'):
             os.remove('/tmp/appsync-test.db')
 
-    def test_protocol(self):
+    def test_verify(self):
+        # use the mock verification view
+        self.config.scan("appsync.tests.views")
+
         # missing 'audience'  => 400
         login_data = {'assertion': 'tarek'}
-
-        # XXX why this not working ?
-        #self.app.post('/verify', login_data, status=400)
+        self.app.post('/verify', login_data, status=400)
 
         # missing 'assertion'  => 400
         login_data = {'audience': 'tarek'}
-
-        # XXX why this not working ?
-        #self.app.post('/verify', login_data, status=400)
+        self.app.post('/verify', login_data, status=400)
 
         # looking good, but bad assertion
         login_data = {'assertion': 'tarek', 'audience': 'bouh'}
@@ -80,10 +77,14 @@ class TestSyncApp(unittest.TestCase):
         self.assertTrue(res['valid-until'] > time.time())
         self.assertTrue(res['issuer'], 'browserid.org')
 
-        # building the auth header
-        auth = 'AppSync %s:%s:%s' % (_b64('a=tarek'), _b64('tarek'),
-                                     _b64('somesig'))
+    def test_protocol(self):
+        # start a session
+        login_data = {'assertion': 'tarek', 'audience': 'AppSync'}
+        resp = self.app.post('/verify', login_data)
+        res = resp.json
 
+        # get the auth header
+        auth = res["http_authorization"].encode("ascii")
         extra = {'HTTP_AUTHORIZATION': auth}
 
         # getting the collection 'blah'
@@ -108,8 +109,8 @@ class TestSyncApp(unittest.TestCase):
         self.assertEqual(len(data['applications']), 0)
 
         # ok let's put some data up
-        app1 = {'last_modified': time.time() + 0.1}
-        app2 = {'last_modified': time.time() + 0.1}
+        app1 = {'origin': 'app1', 'last_modified': time.time() + 0.1}
+        app2 = {'origin': 'app2', 'last_modified': time.time() + 0.1}
 
         apps = json.dumps([app1, app2])
 

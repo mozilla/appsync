@@ -1,5 +1,4 @@
 from webob.exc import HTTPBadRequest
-
 from appsync.storage import IAppSyncDatabase
 
 

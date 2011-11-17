@@ -10,6 +10,11 @@ class CollectionDeletedError(Exception):
         super(CollectionDeletedError, self).__init__()
 
 
+class EditConflictError(Exception):
+    """Error raised when conflicting edits are detected."""
+    pass
+
+
 class IAppSyncDatabase(Interface):
     """Interface definition for AppSync database backends.
 
@@ -54,7 +59,8 @@ class IAppSyncDatabase(Interface):
         identifies the specified collection.  UUIDs are assigned internally
         by the storage backend and cannot be changed.
 
-        If the specified collection does not exist, None is returned.
+        If the specified collection does not exist or has been deleted then
+        None is returned.
         """
 
     def get_applications(user, collection, since, token):
