@@ -13,7 +13,7 @@ SERVER = dev-auth.services.mozilla.com
 SCHEME = https
 BUILDAPP = bin/buildapp
 BUILDRPMS = bin/buildrpms
-PYPI = http://pypi.python.org/simple
+PYPI = http://c.pypi.python.org/simple
 PYPI2RPM = bin/pypi2rpm.py --index=$(PYPI)
 PYPIOPTIONS = -i $(PYPI)
 CHANNEL = dev
