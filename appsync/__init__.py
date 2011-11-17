@@ -28,7 +28,7 @@ def main(global_config, **settings):
     config = get_configurator(global_config, **settings)
 
     # Use autocommit if we're in testing mode.
-    mock_browserid = asbool(os.path.expandvars(global_config.get('test')))
+    mock_browserid = asbool(os.path.expandvars(global_config.get('test', '')))
     if mock_browserid:
         config.autocommit = True
 
