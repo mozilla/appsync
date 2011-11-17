@@ -162,9 +162,8 @@ class SQLDatabase(object):
             else:
                 ## FIXME: for debugging
                 if res.data == json.dumps(app):
-                    raise Exception('Bad attempt to update an application to overwrite itself: %r' % app['origin'])
-                else:
-                    print 'Updating application over itself', origin
+                    ## This is a logic error on the client:
+                    print 'Bad attempt to update an application to overwrite itself: %r' % app['origin']
                 self._execute(queries.UPDATE_BY_ORIGIN_QUERY, user=user, collection=collection,
                               id=res.id, data=json.dumps(app))
 
