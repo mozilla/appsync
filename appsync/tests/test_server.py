@@ -9,7 +9,6 @@ from webob import exc
 from webob.dec import wsgify
 from pyramid import testing
 from mozsvc.config import load_into_settings
-from mozsvc.util import resolve_name
 
 
 _INI = os.path.join(os.path.dirname(__file__), 'tests.ini')
@@ -153,7 +152,6 @@ class TestSyncApp(unittest.TestCase):
 
         uuid = data['uuid']
 
-
         # deleting that collection
         delete = {'client_id': 'client1',
                   'reason': 'well...'}
@@ -180,7 +178,6 @@ class TestSyncApp(unittest.TestCase):
         new_uuid = data['uuid']
         self.assertNotEqual(uuid, new_uuid)
 
-
         # now let's try the 412
         # if lastget is used it will compare it with the
         # timestamp of the last change
@@ -191,7 +188,6 @@ class TestSyncApp(unittest.TestCase):
                       extra_environ=extra,
                       params=apps,
                       content_type='application/json')
-
 
         # let's change it again with lastget < the last change
         # we should get a 412

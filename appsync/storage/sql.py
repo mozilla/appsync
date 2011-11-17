@@ -123,8 +123,8 @@ class SQLDatabase(object):
             raise CollectionDeletedError(deleted.client_id, deleted.reason)
 
         since = int(round_time(since) * 100)
-        apps = self._execute(queries.GET_QUERY, user=user, collection=collection,
-                             since=since)
+        apps = self._execute(queries.GET_QUERY, user=user,
+                             collection=collection, since=since)
 
         # XXX dumb: serialize/unserialize round trip for nothing
         return [json.loads(app.data) for app in apps]
@@ -156,7 +156,8 @@ class SQLDatabase(object):
                           last_modified=now, data=json.dumps(app))
 
     def get_last_modified(self, user, collection, token):
-        res = self._execute(queries.LAST_MODIFIED, user=user, collection=collection)
+        res = self._execute(queries.LAST_MODIFIED, user=user,
+                            collection=collection)
         res = res.fetchone()
         if res is None:
             return None

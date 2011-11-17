@@ -1,12 +1,9 @@
-import os
 import logging
 
 from pyramid.settings import asbool
 
 from mozsvc.config import get_configurator
 from mozsvc.plugin import load_and_register
-
-from appsync.resources import Root
 
 
 logger = logging.getLogger('appsync')

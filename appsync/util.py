@@ -2,6 +2,7 @@ from webob.exc import HTTPBadRequest
 
 from appsync.storage import IAppSyncDatabase
 
+
 def get_storage(request):
     """Get the active storage backend for the given request."""
     return request.registry.getUtility(IAppSyncDatabase)
