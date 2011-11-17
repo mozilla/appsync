@@ -1,5 +1,3 @@
-
-import base64
 import uuid
 import simplejson as json
 
@@ -11,6 +9,7 @@ import pysauropod
 
 from appsync.storage import IAppSyncDatabase
 from appsync.storage import CollectionDeletedError, EditConflictError
+from appsync.util import urlb64decode
 
 
 class SauropodDatabase(object):
@@ -92,12 +91,12 @@ class SauropodDatabase(object):
     def _get_userid_from_assertion(self, assertion):
         """Extract the userid from a BrowserID assertion."""
         try:
-            data = json.loads(base64.b64decode(assertion))
+            data = json.loads(urlb64decode(assertion))
         except (ValueError, TypeError):
             return assertion
         else:
             payload = data["certificates"][0].split(".")[1]
-            payload = json.loads(base64.b64decode(payload))
+            payload = json.loads(urlb64decode(payload))
             return payload["principal"]["email"]
 
     def _resume_session(self, token):
