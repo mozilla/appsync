@@ -25,6 +25,9 @@ def check_auth(request):
     user = request.matchdict['user']
     collection = request.matchdict['collection']
     auth = request.environ.get('HTTP_AUTHORIZATION')
+    mock_browserid = request.registry.get('mock_browserid')
+    if mock_browserid:
+        return user, collection, None
 
     if auth is None:
         raise HTTPUnauthorized()

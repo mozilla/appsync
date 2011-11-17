@@ -96,12 +96,39 @@ order by
 """
 
 
+GET_BY_ORIGIN_QUERY = """\
+select
+    id, data
+from
+    applications
+where
+    user = :user
+and
+    collection = :collection
+and
+    origin = :origin
+"""
+
+
+UPDATE_BY_ORIGIN_QUERY = """\
+update applications
+set
+    data = :data
+where
+    user = :user
+and
+    collection = :collection
+and
+    id = :id
+"""
+
+
 # XXX no bulk inserts in sqlite
 PUT_QUERY = """
 insert into applications
-    (user, collection, last_modified, data)
+    (user, collection, last_modified, data, origin)
 values
-    (:user, :collection, :last_modified, :data)
+    (:user, :collection, :last_modified, :data, :origin)
 """
 
 

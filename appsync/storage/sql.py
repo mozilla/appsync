@@ -43,10 +43,10 @@ class Application(_Base):
     id = Column(Integer, primary_key=True)
     user = Column(String(256), nullable=False)
     collection = Column(String(256), nullable=False)
-    #origin = Column(String(256), nullable=False)    # XXX do we need this
+    origin = Column(String(256), nullable=False)
     last_modified = Column(Integer)
     data = Column(Text)
-
+    ## FIXME: user+collection+origin should/could be unique
 
 applications = Application.__table__
 _TABLES.append(applications)
@@ -152,8 +152,21 @@ class SQLDatabase(object):
 
         # the *real* storage will do bulk inserts of course
         for app in applications:
-            self._execute(queries.PUT_QUERY, user=user, collection=collection,
-                          last_modified=now, data=json.dumps(app))
+            origin = app['origin']
+            res = self._execute(queries.GET_BY_ORIGIN_QUERY, user=user, collection=collection,
+                                origin=origin)
+            res = res.fetchone()
+            if res is None:
+                self._execute(queries.PUT_QUERY, user=user, collection=collection,
+                              last_modified=now, data=json.dumps(app), origin=app['origin'])
+            else:
+                ## FIXME: for debugging
+                if res.data == json.dumps(app):
+                    raise Exception('Bad attempt to update an application to overwrite itself')
+                else:
+                    print 'Updating application over itself', origin
+                self._execute(queries.UPDATE_BY_ORIGIN_QUERY, user=user, collection=collection,
+                              id=res.id, data=json.dumps(app))
 
     def get_last_modified(self, user, collection, token):
         res = self._execute(queries.LAST_MODIFIED, user=user,
@@ -170,10 +183,13 @@ class SQLDatabase(object):
         resp = urllib.urlopen(
             _BROWSERID_VERIFY,
             urllib.urlencode(dict(assertion=assertion, audience=audience)))
-        resp_data = json.loads(resp.read())
+        if resp.getcode() == 500:
+            return None, {"error": "BrowserID server error"}
+        resp_data = resp.read()
+        resp_data = json.loads(resp_data)
 
         token = 'CREATE A TOKEN HERE XXX'
         if resp_data.get('email') and resp_data['status'] == _OK:
             return resp_data['email'], token
 
-        return None
+        return None, resp_data
