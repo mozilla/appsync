@@ -1,3 +1,5 @@
+import base64
+
 from webob.exc import HTTPBadRequest
 from appsync.storage import IAppSyncDatabase
 
@@ -13,3 +15,19 @@ def bad_request(code, msg=''):
     """
     return HTTPBadRequest({'code': code, 'msg': msg},
                           content_type='application/json')
+
+
+def urlb64decode(data):
+    data = data.replace('-', '+')
+    data = data.replace('_', '+')
+    pad = len(data) % 4
+
+    if pad not in (0, 2, 3):
+        raise TypeError()
+
+    if pad == 2:
+        data += '=='
+    else:
+        data += '='
+
+    return base64.b64decode(data)
