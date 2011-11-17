@@ -12,5 +12,9 @@ class TestDatabaseInterfaces(unittest.TestCase):
         verifyClass(IAppSyncDatabase, SQLDatabase)
 
     def test_sauropod_backend(self):
-        from appsync.storage.sauropod import SauropodDatabase
-        verifyClass(IAppSyncDatabase, SauropodDatabase)
+        try:
+            from appsync.storage.sauropod import SauropodDatabase
+        except ImportError:
+            pass
+        else:
+            verifyClass(IAppSyncDatabase, SauropodDatabase)

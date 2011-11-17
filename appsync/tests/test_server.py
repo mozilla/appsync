@@ -25,10 +25,11 @@ class CatchErrors(object):
             return e
 
 
+
 class TestSyncApp(unittest.TestCase):
+
     def setUp(self):
         self.config = testing.setUp()
-
         # creating a test application
         settings = {}
         load_into_settings(_INI, settings)
@@ -38,6 +39,7 @@ class TestSyncApp(unittest.TestCase):
         wsgiapp = self.config.make_wsgi_app()
         app = CatchErrors(wsgiapp)
         self.app = TestApp(app)
+        _init = True
 
     def tearDown(self):
         # XXX should look at the path in the config file
@@ -77,12 +79,8 @@ class TestSyncApp(unittest.TestCase):
         self.assertTrue(res['valid-until'] > time.time())
         self.assertTrue(res['issuer'], 'browserid.org')
 
-    def test_protocol(self):
+        #def test_protocol(self):
         # start a session
-        login_data = {'assertion': 'tarek', 'audience': 'AppSync'}
-        resp = self.app.post('/verify', login_data)
-        res = resp.json
-
         # get the auth header
         auth = res["http_authorization"].encode("ascii")
         extra = {'HTTP_AUTHORIZATION': auth}

@@ -4,6 +4,7 @@ import urllib
 from webob.exc import HTTPBadRequest
 from mozsvc.util import round_time
 from appsync.views import verify
+from appsync.auth import create_auth
 
 
 _ASSERTION_MATCH = re.compile('a=(.*)')
@@ -36,9 +37,12 @@ def mock_verify(request):
 
     collection_url = '/collections/%s/apps' % urllib.quote(assertion)
 
+    auth = create_auth(assertion, assertion, 'sometoken')
+
     return {'status': _OK,
             'email': assertion,
             'audience': audience,
             'valid-until': round_time() + _VALIDITY_DURATION,
             'issuer': _DOMAIN,
-            'collection_url': request.application_url + collection_url}
+            'collection_url': request.application_url + collection_url,
+            'http_authorization': auth}
