@@ -15,6 +15,11 @@ class EditConflictError(Exception):
     pass
 
 
+class StorageAuthError(Exception):
+    """Error when a auth issue happens"""
+    pass
+
+
 class IAppSyncDatabase(Interface):
     """Interface definition for AppSync database backends.
 

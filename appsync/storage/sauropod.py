@@ -18,12 +18,12 @@ def decode(assertion):
     pad = len(assertion) % 4
     if pad not in (0, 2, 3):
         raise TypeError()
-  
+
     if pad == 2:
         assertion += '=='
     else:
-        assertion += '='	    	    
-            
+        assertion += '='
+
     return base64.b64decode(assertion)
 
 
