@@ -39,7 +39,8 @@ class IAppSyncDatabase(Interface):
         This method uses the given BrowserID assertion to authenticate to
         the database and begin an access session.  If authentication is
         successful it will return the user's email address and an access
-        token for the database.  If authentication fails it returns None.
+        token for the database.  If authentication fails it returns None 
+        and the JSON error response from the server.
         """
 
     def get_last_modified(user, collection, token):

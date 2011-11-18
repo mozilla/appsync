@@ -1,4 +1,5 @@
 import uuid
+import functools
 import simplejson as json
 
 from zope.interface import implements
@@ -8,23 +9,22 @@ from mozsvc.util import round_time
 import pysauropod
 
 from appsync.storage import IAppSyncDatabase
-from appsync.storage import CollectionDeletedError, EditConflictError
 from appsync.util import urlb64decode
+from appsync.storage import (CollectionDeletedError, EditConflictError,
+                            StorageAuthError)
 
 
-def decode(assertion):
-    assertion = assertion.replace('-', '+')
-    assertion = assertion.replace('_', '+')
-    pad = len(assertion) % 4
-    if pad not in (0, 2, 3):
-        raise TypeError()
-
-    if pad == 2:
-        assertion += '=='
-    else:
-        assertion += '='
-
-    return base64.b64decode(assertion)
+def convert_sauropod_errors(func):
+    """Method wrapper to convert sauropod errors into appsync errors."""
+    @functools.wraps(func)
+    def wrapper(*args, **kwds):
+        try:
+            return func(*args, **kwds)
+        except pysauropod.ConflictError:
+            raise EditConflitError
+        except pysauropod.AuthenticationError:
+            raise StorageAuthError
+    return wrapper
 
 
 class SauropodDatabase(object):
@@ -94,13 +94,12 @@ class SauropodDatabase(object):
     def __init__(self, store_url, appid, **kwds):
         self._store = pysauropod.connect(store_url, appid, **kwds)
 
+    @convert_sauropod_errors
     def verify(self, assertion, audience):
         """Authenticate the user and return an access token."""
         userid = self._get_userid_from_assertion(assertion)
         credentials = {"assertion": assertion, "audience": audience}
         session = self._store.start_session(userid, credentials)
-        if session is None:
-            raise RuntimeError("failed to start session, what should I raise?")
         return session.userid, "%s:%s" % (session.userid, session.sessionid)
 
     def _get_userid_from_assertion(self, assertion):
@@ -119,6 +118,7 @@ class SauropodDatabase(object):
         userid, sessionid = token.split(":", 1)
         return self._store.resume_session(userid, sessionid)
 
+    @convert_sauropod_errors
     def get_last_modified(self, user, collection, token):
         """Get the latest last-modified time for any app in the collection."""
         s = self._resume_session(token)
@@ -132,6 +132,7 @@ class SauropodDatabase(object):
                                          meta.get("reason", ""))
         return round_time(meta.get("last_modified", 0))
 
+    @convert_sauropod_errors
     def delete(self, user, collection, client_id, reason, token):
         s = self._resume_session(token)
         # Grab the collection metadata as it is before deleting anything.
@@ -159,10 +160,7 @@ class SauropodDatabase(object):
         meta_data["etags"] = {}
         meta_data["uuid"] = None
         meta_data["last_modified"] = round_time()
-        try:
-            s.set(meta_key, json.dumps(meta_data), if_match=meta_etag)
-        except pysauropod.ConflictError:
-            raise EditConflictError()
+        s.set(meta_key, json.dumps(meta_data), if_match=meta_etag)
 
         # Now we can delete the applications that were recorded in
         # the metadata.
@@ -183,6 +181,7 @@ class SauropodDatabase(object):
         # Done.  We might have left some dangling app records, but
         # that's not so bad in the scheme of things.
 
+    @convert_sauropod_errors
     def get_uuid(self, user, collection, token):
         """Get the UUID identifying a collection."""
         s = self._resume_session(token)
@@ -193,6 +192,7 @@ class SauropodDatabase(object):
             return None
         return meta.get("uuid", None)
 
+    @convert_sauropod_errors
     def get_applications(self, user, collection, since, token):
         """Get all applications that have been modified later than 'since'."""
         s = self._resume_session(token)
@@ -226,6 +226,7 @@ class SauropodDatabase(object):
             updates.append(app)
         return updates
 
+    @convert_sauropod_errors
     def add_applications(self, user, collection, applications, token):
         """Add application updates to a collection."""
         s = self._resume_session(token)
@@ -297,10 +298,7 @@ class SauropodDatabase(object):
         meta_data["last_modified"] = now
         if not meta_data.get("uuid"):
             meta_data["uuid"] = uuid.uuid4().hex
-        try:
-            s.set(meta_key, json.dumps(meta_data), if_match=meta_etag)
-        except pysauropod.ConflictError:
-            raise EditConflictError()
+        s.set(meta_key, json.dumps(meta_data), if_match=meta_etag)
         # Finally, we have completed the writes.
         # Report back if we found some apps that had been changed and
         # could not be overwritten.
