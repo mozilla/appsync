@@ -57,4 +57,7 @@ def main(global_config, **settings):
         config.scan("appsync.tests.views")
         config.registry['mock_browserid'] = True
 
-    return CatchAuthError(config.make_wsgi_app())
+    app = config.make_wsgi_app()
+    errapp = CatchAuthError(app)
+    errapp.registry = app.registry
+    return errapp
