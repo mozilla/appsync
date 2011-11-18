@@ -9,6 +9,7 @@ from webob.dec import wsgify
 from pyramid import testing
 from mozsvc.config import load_into_settings
 
+from appsync import CatchAuthError
 
 _INI = os.path.join(os.path.dirname(__file__), 'tests.ini')
 
@@ -35,11 +36,9 @@ class TestSyncApp(unittest.TestCase):
         load_into_settings(_INI, settings)
         self.config.add_settings(settings)
         self.config.include("appsync")
-        self.config.scan("appsync.tests.views")
         wsgiapp = self.config.make_wsgi_app()
-        app = CatchErrors(wsgiapp)
+        app = CatchErrors(CatchAuthError(wsgiapp))
         self.app = TestApp(app)
-        _init = True
 
     def tearDown(self):
         # XXX should look at the path in the config file
@@ -47,9 +46,6 @@ class TestSyncApp(unittest.TestCase):
             os.remove('/tmp/appsync-test.db')
 
     def test_verify(self):
-        # use the mock verification view
-        self.config.scan("appsync.tests.views")
-
         # missing 'audience'  => 400
         login_data = {'assertion': 'tarek'}
         self.app.post('/verify', login_data, status=400)
@@ -58,35 +54,39 @@ class TestSyncApp(unittest.TestCase):
         login_data = {'audience': 'tarek'}
         self.app.post('/verify', login_data, status=400)
 
-        # looking good, but bad assertion
-        login_data = {'assertion': 'tarek', 'audience': 'bouh'}
-        resp = self.app.post('/verify', login_data)
-        res = resp.json
+        # bad assertion
+        login_data = {'assertion': 'not-an-email-address', 'audience': 'bouh'}
+        resp = self.app.post('/verify', login_data, status=401)
 
-        # checking the result
-        self.assertEqual(res['status'], 'failed')
+        # bad audience
+        login_data = {'assertion': 't@m.com', 'audience': ''}
+        resp = self.app.post('/verify', login_data, status=401)
 
         # looking good
-        login_data = {'assertion': 'a=tarek?bli',
-                      'audience': 'tarek?bli'}
+        login_data = {'assertion': 't@m.com',
+                      'audience': 'http://myapps.mozillalabs.com/'}
         resp = self.app.post('/verify', login_data)
         res = resp.json
 
         # checking the result
         self.assertEqual(res['status'], 'okay')
-        self.assertEqual(res['audience'], 'tarek?bli')
-        self.assertEqual(res['email'], 'tarek')
+        self.assertEqual(res['audience'], 'http://myapps.mozillalabs.com/')
+        self.assertEqual(res['email'], 't@m.com')
         self.assertTrue(res['valid-until'] > time.time())
         self.assertTrue(res['issuer'], 'browserid.org')
 
-        #def test_protocol(self):
+    def test_protocol(self):
         # start a session
+        login_data = {'assertion': 't@m.com',
+                      'audience': 'http://myapps.mozillalabs.com/'}
+        resp = self.app.post('/verify', login_data)
+        res = resp.json
         # get the auth header
         auth = res["http_authorization"].encode("ascii")
         extra = {'HTTP_AUTHORIZATION': auth}
 
         # getting the collection 'blah'
-        data = self.app.get('/collections/tarek/blah',
+        data = self.app.get('/collections/t@m.com/blah',
                             extra_environ=extra).json
 
         # what did we get ?
@@ -96,7 +96,7 @@ class TestSyncApp(unittest.TestCase):
 
         # getting the collection 'blah' since 5 min ago
         since = time.time() - 300
-        data2 = self.app.get('/collections/tarek/blah?since=%s' % since,
+        data2 = self.app.get('/collections/t@m.com/blah?since=%s' % since,
                              extra_environ=extra).json
 
         # what did we get ?
@@ -112,12 +112,12 @@ class TestSyncApp(unittest.TestCase):
 
         apps = json.dumps([app1, app2])
 
-        res = self.app.post('/collections/tarek/blah', params=apps,
+        res = self.app.post('/collections/t@m.com/blah', params=apps,
                             extra_environ=extra,
                             content_type='application/json')
 
         # see if we got them
-        data = self.app.get('/collections/tarek/blah',
+        data = self.app.get('/collections/t@m.com/blah',
                             extra_environ=extra).json
 
         # what did we get ?
@@ -129,12 +129,12 @@ class TestSyncApp(unittest.TestCase):
         delete = {'client_id': 'client1',
                   'reason': 'well...'}
 
-        self.app.post('/collections/tarek/blah?delete',
+        self.app.post('/collections/t@m.com/blah?delete',
                       extra_environ=extra, params=json.dumps(delete),
                       content_type='application/json')
 
         # see if we got them
-        data = self.app.get('/collections/tarek/blah',
+        data = self.app.get('/collections/t@m.com/blah',
                             extra_environ=extra).json
 
         self.assertEquals(['collection_deleted'], data.keys())
@@ -143,10 +143,10 @@ class TestSyncApp(unittest.TestCase):
         # the uuid needs to change
 
         # creating some data
-        self.app.post('/collections/tarek/blah',
+        self.app.post('/collections/t@m.com/blah',
                       extra_environ=extra, params=apps,
                       content_type='application/json')
-        data = self.app.get('/collections/tarek/blah',
+        data = self.app.get('/collections/t@m.com/blah',
                             extra_environ=extra).json
 
         uuid = data['uuid']
@@ -155,23 +155,23 @@ class TestSyncApp(unittest.TestCase):
         delete = {'client_id': 'client1',
                   'reason': 'well...'}
 
-        self.app.post('/collections/tarek/blah?delete',
+        self.app.post('/collections/t@m.com/blah?delete',
                       extra_environ=extra, params=json.dumps(delete),
                       content_type='application/json')
 
         # see if we got them
-        data = self.app.get('/collections/tarek/blah',
+        data = self.app.get('/collections/t@m.com/blah',
                             extra_environ=extra).json
 
         self.assertEquals(['collection_deleted'], data.keys())
 
         # creating some data again
-        self.app.post('/collections/tarek/blah',
+        self.app.post('/collections/t@m.com/blah',
                       extra_environ=extra,
                       params=apps,
                       content_type='application/json')
 
-        data = self.app.get('/collections/tarek/blah',
+        data = self.app.get('/collections/t@m.com/blah',
                             extra_environ=extra).json
 
         new_uuid = data['uuid']
@@ -183,14 +183,14 @@ class TestSyncApp(unittest.TestCase):
         now = time.time() - 100
 
         # let's change the data
-        self.app.post('/collections/tarek/blah',
+        self.app.post('/collections/t@m.com/blah',
                       extra_environ=extra,
                       params=apps,
                       content_type='application/json')
 
         # let's change it again with lastget < the last change
         # we should get a 412
-        self.app.post('/collections/tarek/blah?lastget=%s' % now,
+        self.app.post('/collections/t@m.com/blah?lastget=%s' % now,
                       extra_environ=extra,
                       params=apps,
                       content_type='application/json',
