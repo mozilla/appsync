@@ -289,7 +289,7 @@ class SauropodDatabase(object):
         # If we get a conflict, we leave all of our modifications in place.
         # The client will just try again later and happily find that all
         # of the keys have already been updated.
-        apps.sort()
+        apps.sort(reverse=True)
         meta_data["apps"] = apps
         meta_data["etags"] = etags
         if meta_data.pop("deleted", False):
