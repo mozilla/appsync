@@ -1,7 +1,7 @@
 venusian==1.0a2
 setuptools==0.6c11
 mozsvc==0.1
-cornice==0.2
+cornice==0.3
 SQLAlchemy==0.7.3
 Chameleon==2.5.3
 Jinja2==2.6
