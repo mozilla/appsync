@@ -41,9 +41,11 @@ class TestSyncApp(unittest.TestCase):
         self.app = TestApp(app)
 
     def tearDown(self):
-        # XXX should look at the path in the config file
-        if os.path.exists('/tmp/appsync-test.db'):
-            os.remove('/tmp/appsync-test.db')
+        sqluri = self.config.get_settings().get('storage.sqluri')
+        if sqluri is not None and sqluri.startswith('sqlite'):
+            filename = sqluri[len('sqlite://'):]
+            if os.path.exists(filename):
+                os.remove(filename)
 
     def test_verify(self):
         # missing 'audience'  => 400
