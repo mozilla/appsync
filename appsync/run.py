@@ -39,7 +39,10 @@ Runs the Application. This script can be called by any wsgi runner that looks
 for an 'application' variable
 """
 import os
+import sys
+import traceback
 from logging.config import fileConfig
+import logging
 from ConfigParser import NoSectionError
 
 # setting up the egg cache to a place where apache can write
@@ -47,11 +50,25 @@ os.environ['PYTHON_EGG_CACHE'] = '/tmp/python-eggs'
 
 # setting up logging
 ini_file = os.path.join('/var', 'appsync', 'etc', 'appsync-dev.ini')
+
+if not os.path.exists(ini_file):
+    logging.error('could not find config file %r' % ini_file)
+    sys.exit(1)
+
 try:
     fileConfig(ini_file)
 except NoSectionError:
     pass
+except:
+    # configuration error
+    logging.error('startup failure\n%s' % traceback.format_exc())
+    sys.exit(1)
 
 # running the app using Paste
 from paste.deploy import loadapp
-application = loadapp('config:%s#site' % ini_file)
+
+try:
+    application = loadapp('config:%s#site' % ini_file)
+except:
+    logging.error('startup failure\n%s' % traceback.format_exc())
+    sys.exit(1)
