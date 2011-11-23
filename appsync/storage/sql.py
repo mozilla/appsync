@@ -1,7 +1,6 @@
 import traceback
 
 import simplejson as json
-import urllib
 from sqlalchemy.exc import OperationalError, TimeoutError
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base, Column
@@ -10,16 +9,16 @@ from sqlalchemy import Integer, String, Text
 from zope.interface import implements
 
 from mozsvc.exceptions import BackendError
-from mozsvc.util import round_time
+from mozsvc.util import round_time, maybe_resolve_name
 
 from appsync import logger
 from appsync.storage import queries
-from appsync.storage import IAppSyncDatabase, CollectionDeletedError
+from appsync.storage import (IAppSyncDatabase, CollectionDeletedError,
+                             StorageAuthError)
+from appsync.util import verify_browserid
 
 
 _TABLES = []
-_OK = 'okay'
-_BROWSERID_VERIFY = 'https://browserid.org/verify'
 _Base = declarative_base()
 
 
@@ -89,6 +88,12 @@ class SQLDatabase(object):
     implements(IAppSyncDatabase)
 
     def __init__(self, **options):
+        self._verify_browserid = options.pop("verify_browserid", None)
+        if self._verify_browserid is None:
+            self._verify_browserid = verify_browserid
+        else:
+            self._verify_browserid = maybe_resolve_name(self._verify_browserid)
+
         #sqlkw = {'pool_size': int(options.get('pool_size', 1)),
         #         'pool_recycle': int(options.get('pool_recycle', 3600)),
         #         'logging_name': 'appsync'}
@@ -177,18 +182,8 @@ class SQLDatabase(object):
 
     def verify(self, assertion, audience):
         """Authenticate then return a token"""
-        ## FIXME: basic HTTP errors should be caught and handled
-        ## FIXME: browser certifications
-        resp = urllib.urlopen(
-            _BROWSERID_VERIFY,
-            urllib.urlencode(dict(assertion=assertion, audience=audience)))
-        if resp.getcode() == 500:
-            return None, {"error": "BrowserID server error"}
-        resp_data = resp.read()
-        resp_data = json.loads(resp_data)
-
+        email, data = self._verify_browserid(assertion, audience)
+        if not email:
+            raise StorageAuthError
         token = 'CREATE A TOKEN HERE XXX'
-        if resp_data.get('email') and resp_data['status'] == _OK:
-            return resp_data['email'], token
-
-        return None, resp_data
+        return email, token

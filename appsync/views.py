@@ -1,4 +1,5 @@
 import urllib
+import time
 try:
     import simplejson as json
 except ImportError:
@@ -68,10 +69,18 @@ def verify_(request):
         return resp
     email, dbtoken = res
 
-    resp = {'email': email}
+    resp = {}
+    resp['email'] = email
     collection_url = '/collections/%s/apps' % urllib.quote(email)
     resp['collection_url'] = request.application_url + collection_url
     resp['http_authorization'] = create_auth(assertion, email, dbtoken)
+    # XXX: This needs to return the browserid verification data
+    #      but that info is not provided by the storage backend. 
+    #      Stubbing it out for now.
+    resp['status'] = 'okay'
+    resp['audience'] = audience
+    resp['valid-until'] = time.time() + 5*60
+    resp['issuer'] = 'browserid.org'
     return resp
 
 #
