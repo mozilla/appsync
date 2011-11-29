@@ -132,7 +132,8 @@ class SQLDatabase(object):
                              collection=collection, since=since)
 
         # XXX dumb: serialize/unserialize round trip for nothing
-        return [json.loads(app.data) for app in apps]
+        return [(round_time(app.last_modified / 100.),
+                 json.loads(app.data)) for app in apps]
 
     def add_applications(self, user, collection, applications, token):
         res = self._execute(queries.IS_DEL, user=user, collection=collection)
@@ -158,19 +159,25 @@ class SQLDatabase(object):
         # the *real* storage will do bulk inserts of course
         for app in applications:
             origin = app['origin']
-            res = self._execute(queries.GET_BY_ORIGIN_QUERY, user=user, collection=collection,
-                                origin=origin)
+            res = self._execute(queries.GET_BY_ORIGIN_QUERY, user=user,
+                                collection=collection, origin=origin)
             res = res.fetchone()
             if res is None:
-                self._execute(queries.PUT_QUERY, user=user, collection=collection,
-                              last_modified=now, data=json.dumps(app), origin=app['origin'])
+                self._execute(queries.PUT_QUERY, user=user,
+                              collection=collection,
+                              last_modified=now, data=json.dumps(app),
+                              origin=app['origin'])
             else:
                 ## FIXME: for debugging
                 if res.data == json.dumps(app):
                     ## This is a logic error on the client:
-                    print 'Bad attempt to update an application to overwrite itself: %r' % app['origin']
-                self._execute(queries.UPDATE_BY_ORIGIN_QUERY, user=user, collection=collection,
-                              id=res.id, data=json.dumps(app))
+                    print ('Bad attempt to update an application '
+                           ' to overwrite itself: %r') % app['origin']
+
+                self._execute(queries.UPDATE_BY_ORIGIN_QUERY, user=user,
+                              collection=collection,
+                              id=res.id, data=json.dumps(app),
+                              last_modified=now)
 
     def get_last_modified(self, user, collection, token):
         res = self._execute(queries.LAST_MODIFIED, user=user,
@@ -178,7 +185,8 @@ class SQLDatabase(object):
         res = res.fetchone()
         if res is None:
             return None
-        return res.last_modified
+        # last modified is a timestamp * 100
+        return round_time(res.last_modified / 100.)
 
     def verify(self, assertion, audience):
         """Authenticate then return a token"""

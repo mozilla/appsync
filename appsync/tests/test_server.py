@@ -26,7 +26,6 @@ class CatchErrors(object):
             return e
 
 
-
 class TestSyncApp(unittest.TestCase):
 
     def setUp(self):
@@ -177,12 +176,15 @@ class TestSyncApp(unittest.TestCase):
                             extra_environ=extra).json
 
         new_uuid = data['uuid']
+        until = data['until']
         self.assertNotEqual(uuid, new_uuid)
 
         # now let's try the 412
         # if lastget is used it will compare it with the
         # timestamp of the last change
-        now = time.time() - 100
+
+        # the precision of the timestamps are .01
+        time.sleep(.01)
 
         # let's change the data
         self.app.post('/collections/t@m.com/blah',
@@ -192,7 +194,7 @@ class TestSyncApp(unittest.TestCase):
 
         # let's change it again with lastget < the last change
         # we should get a 412
-        self.app.post('/collections/t@m.com/blah?lastget=%s' % now,
+        self.app.post('/collections/t@m.com/blah?lastget=%s' % until,
                       extra_environ=extra,
                       params=apps,
                       content_type='application/json',
