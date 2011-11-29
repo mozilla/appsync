@@ -21,7 +21,7 @@ def convert_sauropod_errors(func):
         try:
             return func(*args, **kwds)
         except pysauropod.ConflictError:
-            raise EditConflitError
+            raise EditConflictError
         except pysauropod.AuthenticationError:
             raise StorageAuthError
     return wrapper
@@ -223,7 +223,7 @@ class SauropodDatabase(object):
             except KeyError:
                 # It has been deleted; ignore it.
                 continue
-            updates.append(app)
+            updates.append((last_modified, app))
         return updates
 
     @convert_sauropod_errors

@@ -75,11 +75,11 @@ def verify_(request):
     resp['collection_url'] = request.application_url + collection_url
     resp['http_authorization'] = create_auth(assertion, email, dbtoken)
     # XXX: This needs to return the browserid verification data
-    #      but that info is not provided by the storage backend. 
+    #      but that info is not provided by the storage backend.
     #      Stubbing it out for now.
     resp['status'] = 'okay'
     resp['audience'] = audience
-    resp['valid-until'] = time.time() + 5*60
+    resp['valid-until'] = time.time() + 5 * 60
     resp['issuer'] = 'browserid.org'
     return resp
 
@@ -163,12 +163,21 @@ def get_data(request):
     storage = get_storage(request)
 
     res = {'since': since,
-           'until': round_time(),
            'uuid': storage.get_uuid(user, collection, dbtoken)}
-
+    until = -1
+    apps = []
     try:
-        res['applications'] = storage.get_applications(user, collection,
-                                                       since, token=dbtoken)
+        for index, (last_modified, app) in enumerate(
+                storage.get_applications(user, collection, since,
+                                         token=dbtoken)):
+            if last_modified > until:
+                until = last_modified
+
+            apps.append(app)
+
+        res['applications'] = apps
+        res['until'] = until
+
     except CollectionDeletedError, e:
         return {'collection_deleted': {'reason': e.reason,
                                        'client_id': e.client_id}}
