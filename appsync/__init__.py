@@ -8,6 +8,7 @@ from pyramid.settings import asbool
 
 from mozsvc.config import get_configurator
 from mozsvc.plugin import load_and_register
+from mozsvc.middlewares import CatchErrorMiddleware
 
 from appsync.storage import StorageAuthError
 
@@ -27,6 +28,22 @@ def includeme(config):
 
     # initializes the storage backend
     load_and_register("storage", config)
+
+
+# XXX this should be backported to mozsvc
+class CatchErrorMiddleware2(CatchErrorMiddleware):
+    def __init__(self, app, config):
+        import logging
+        from mozsvc.middlewares import _resolve_name
+        self.app = app
+        logger_name = config.get('global.logger_name', 'root')
+        self.logger = logging.getLogger(logger_name)
+        hook = config.get('global.logger_hook')
+        if hook is not None:
+            self.hook = _resolve_name(hook)
+        else:
+            self.hook = None
+        self.ctype = config.get('global.logger_type', 'application/json')
 
 
 class CatchAuthError(object):
@@ -59,5 +76,6 @@ def main(global_config, **settings):
 
     app = config.make_wsgi_app()
     errapp = CatchAuthError(app)
+    errapp = CatchErrorMiddleware2(errapp, config.registry.settings)
     errapp.registry = app.registry
     return errapp
