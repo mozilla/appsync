@@ -20,6 +20,7 @@ CHANNEL = dev
 RPM_CHANNEL = prod
 INSTALL = bin/pip install
 INSTALLOPTIONS = -U -i $(PYPI)
+TIMEOUT = 300
 
 ifdef PYPIEXTRAS
 	PYPIOPTIONS += -e $(PYPIEXTRAS)
@@ -49,16 +50,16 @@ build:
 	$(INSTALL) nose
 	$(INSTALL) WebTest
 	$(INSTALL) wsgi_intercept
-	$(BUILDAPP) -c $(CHANNEL) $(PYPIOPTIONS) $(DEPS)
+	$(BUILDAPP) -t $(TIMEOUT) -c $(CHANNEL) $(PYPIOPTIONS) $(DEPS)
 
 update:
-	$(BUILDAPP) -c $(CHANNEL) $(PYPIOPTIONS) $(DEPS)
+	$(BUILDAPP) -t $(TIMEOUT) -c $(CHANNEL) $(PYPIOPTIONS) $(DEPS)
 
 test:
 	$(NOSE) $(TESTS)
 
 build_rpms:
-	$(BUILDRPMS) -c $(RPM_CHANNEL) $(DEPS)
+	$(BUILDRPMS) -t $(TIMEOUT) -c $(RPM_CHANNEL) $(DEPS)
 
 clean:
 	rm -rf bin lib include local docs/build
