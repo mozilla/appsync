@@ -248,3 +248,14 @@ def post_data(request):
     storage.add_applications(user, collection, apps, token=dbtoken)
 
     return {'received': server_time}
+
+
+heartbeat = Service(name='heartbeat', path='/__heartbeat__')
+
+
+@heartbeat.get()
+def check_health(request, renderer='string'):
+    """Checks that the server is up"""
+    # XXX See if we want to add a backend check here
+    # Services Ops would say no
+    return 'OK'

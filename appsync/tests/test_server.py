@@ -199,3 +199,7 @@ class TestSyncApp(unittest.TestCase):
                       params=apps,
                       content_type='application/json',
                       status=412)
+
+    def test_heartbeat(self):
+        res = self.app.get('/__heartbeat__')
+        self.assertEqual(res.body, 'OK')
