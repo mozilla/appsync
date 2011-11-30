@@ -171,8 +171,8 @@ class SQLDatabase(object):
                 ## FIXME: for debugging
                 if res.data == json.dumps(app):
                     ## This is a logic error on the client:
-                    print ('Bad attempt to update an application '
-                           ' to overwrite itself: %r') % app['origin']
+                    logger.error(('Bad attempt to update an application '
+                                  ' to overwrite itself: %r') % app['origin'])
 
                 self._execute(queries.UPDATE_BY_ORIGIN_QUERY, user=user,
                               collection=collection,

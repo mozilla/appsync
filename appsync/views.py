@@ -9,6 +9,7 @@ from cornice import Service
 from mozsvc.util import round_time
 from webob import exc
 
+from appsync import logger
 from appsync.util import get_storage, bad_request
 from appsync.storage import CollectionDeletedError
 from appsync.auth import create_auth, check_auth
@@ -152,7 +153,7 @@ def get_data(request):
     except TypeError:
         raise bad_request(INVALID_SINCE_VALUE)
     except ValueError:
-        print 'Bad since', repr(since)
+        logger.error('Bad since %r' % since)
         raise bad_request(INVALID_SINCE_VALUE,
                           'Invalid value for since: %r' % since)
 
