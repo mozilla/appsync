@@ -82,9 +82,13 @@ class TestSyncApp(unittest.TestCase):
                       'audience': 'http://myapps.mozillalabs.com/'}
         resp = self.app.post('/verify', login_data)
         res = resp.json
+
         # get the auth header
         auth = res["http_authorization"].encode("ascii")
         extra = {'HTTP_AUTHORIZATION': auth}
+
+        # try to get the collection 'blah' with no token
+        self.app.get('/collections/t@m.com/blah', status=401)
 
         # getting the collection 'blah'
         data = self.app.get('/collections/t@m.com/blah',
