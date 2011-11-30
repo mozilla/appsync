@@ -113,7 +113,7 @@ and
 UPDATE_BY_ORIGIN_QUERY = """\
 update applications
 set
-    data = :data
+    data = :data, last_modified = :last_modified
 where
     user = :user
 and
