@@ -22,3 +22,4 @@ zope.component==3.11
 zope.deprecation==3.5
 zope.event==3.5.1
 zope.interface==3.8
+WebTest==1.3.2
