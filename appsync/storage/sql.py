@@ -43,7 +43,7 @@ class Application(_Base):
     user = Column(String(256), nullable=False)
     collection = Column(String(256), nullable=False)
     origin = Column(String(256), nullable=False)
-    last_modified = Column(Integer)
+    last_modified = Column(Integer, nullable=False)
     data = Column(Text)
     ## FIXME: user+collection+origin should/could be unique
 
@@ -183,7 +183,7 @@ class SQLDatabase(object):
         res = self._execute(queries.LAST_MODIFIED, user=user,
                             collection=collection)
         res = res.fetchone()
-        if res is None:
+        if res in (None, (None,)):
             return None
         # last modified is a timestamp * 100
         return round_time(res.last_modified / 100.)
