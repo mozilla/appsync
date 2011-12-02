@@ -10,7 +10,8 @@ from mozsvc.util import round_time
 from webob import exc
 
 from appsync import logger
-from appsync.util import get_storage, bad_request
+from appsync.util import get_storage, get_cache, bad_request
+from appsync.cache import CacheError
 from appsync.storage import CollectionDeletedError
 from appsync.auth import create_auth, check_auth
 from appsync.respcodes import (INVALID_JSON, INVALID_SINCE_VALUE,
@@ -182,6 +183,18 @@ def get_data(request):
     except CollectionDeletedError, e:
         return {'collection_deleted': {'reason': e.reason,
                                        'client_id': e.client_id}}
+
+    # do we want to add a X-Sync-Poll ?
+    cache = get_cache(request)
+    if cache is not None:
+        try:
+            poll_interval = cache.get('X-Sync-Poll')
+        except CacheError, e:
+            # a well, nevermind then
+            logger.error(e.message)
+        else:
+            if poll_interval is not None:
+                request.response.headers['X-Sync-Poll'] = str(poll_interval)
 
     return res
 

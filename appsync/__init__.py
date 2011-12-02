@@ -1,6 +1,7 @@
 import logging
 import os
 import traceback
+from ConfigParser import NoSectionError
 
 from webob.dec import wsgify
 from webob.exc import HTTPUnauthorized
@@ -29,6 +30,11 @@ def includeme(config):
     # initializes the storage backend
     load_and_register("storage", config)
 
+    # initializes the cache tool
+    try:
+        load_and_register("cache", config)
+    except NoSectionError:
+        pass
 
 class CatchAuthError(object):
     def __init__(self, app):

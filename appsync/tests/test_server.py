@@ -28,11 +28,13 @@ class CatchErrors(object):
 
 class TestSyncApp(unittest.TestCase):
 
+    ini = _INI
+
     def setUp(self):
         self.config = testing.setUp()
         # creating a test application
         settings = {}
-        load_into_settings(_INI, settings)
+        load_into_settings(self.ini, settings)
         self.config.add_settings(settings)
         self.config.include("appsync")
         wsgiapp = self.config.make_wsgi_app()

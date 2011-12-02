@@ -2,8 +2,10 @@ import base64
 import json
 import urllib
 
+from zope.interface.registry import ComponentLookupError
 from webob.exc import HTTPBadRequest
 from appsync.storage import IAppSyncDatabase
+from appsync.cache import IAppCache
 
 
 BROWSERID_VERIFY_URL = 'https://browserid.org/verify'
@@ -12,6 +14,14 @@ BROWSERID_VERIFY_URL = 'https://browserid.org/verify'
 def get_storage(request):
     """Get the active storage backend for the given request."""
     return request.registry.getUtility(IAppSyncDatabase)
+
+
+def get_cache(request):
+    """Get the active cache backend for the given request."""
+    try:
+        return request.registry.getUtility(IAppCache)
+    except ComponentLookupError:
+        return None
 
 
 def bad_request(code, msg=''):

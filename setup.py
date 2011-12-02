@@ -10,7 +10,8 @@ with open(os.path.join(here, 'README.rst')) as f:
 with open(os.path.join(here, 'CHANGES.txt')) as f:
     CHANGES = f.read()
 
-requires = ['cornice', 'mozsvc', 'WebTest', 'simplejson', 'SQLAlchemy']
+requires = ['cornice', 'mozsvc', 'WebTest', 'simplejson', 'SQLAlchemy',
+            'pylibmc']
 
 
 setup(name='appsync',

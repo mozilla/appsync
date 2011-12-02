@@ -49,7 +49,7 @@ from ConfigParser import NoSectionError
 os.environ['PYTHON_EGG_CACHE'] = '/tmp/python-eggs'
 
 # setting up logging
-ini_file = os.path.join('/var', 'appsync', 'etc', 'appsync-dev.ini')
+ini_file = os.path.join('/etc', 'appsync', 'appsync-prod.ini')
 
 if not os.path.exists(ini_file):
     logging.error('could not find config file %r' % ini_file)
