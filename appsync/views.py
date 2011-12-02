@@ -165,7 +165,7 @@ def get_data(request):
 
     res = {'since': since,
            'uuid': storage.get_uuid(user, collection, dbtoken)}
-    until = -1
+    until = 0
     apps = []
     try:
         for index, (last_modified, app) in enumerate(
