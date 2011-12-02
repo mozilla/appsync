@@ -13,22 +13,49 @@ class SimpleTest(FunkLoadTestCase):
         self.root = self.conf_get('main', 'url')
         self.vusers = int(self.conf_get('main', 'vusers'))
 
-    def test_simple_session(self):
+    def test_something(self):
+        # most clients do polling
+        pickone = ['_polling'] * 10
 
+        # some actually add some content
+        pickone += ['_content'] * 3
+
+        # and a very few delete stuff
+        pickone += ['_delete'] * 1
+
+        chosen = random.choice(pickone)
+        return getattr(self, chosen)()
+
+    def start_session(self):
         assertion = 'user%d@moz.com' % random.randint(0, self.vusers-1)
         audience = 'http://myapps.mozillalabs.com/'
         params = [['audience', audience],
                   ['assertion', assertion]]
-
-        # creating a session
         resp = self.post(self.root + '/verify', params=params)
         self.assertEquals(resp.code, 200)
-
         res = json.loads(resp.body)
         auth = res['http_authorization']
-
-        # now doing some work
         self.setHeader('Authorization', auth)
+        apps_url = '%s/collections/%s/apps' % (self.root, assertion)
+        return assertion, apps_url
+
+    #
+    # The actual tests...
+    #
+    def _polling(self):
+        assertion, apps_url = self.start_session()
+        myapps = json.loads(self.get(apps_url).body)
+        self.assertTrue('applications' in myapps)
+
+    def _delete(self):
+        assertion, apps_url = self.start_session()
+        myapps = json.loads(self.get(apps_url).body)
+        if len(myapps['application']) > 0:
+            # let's delete them !
+            self.post(apps_url + '?delete=true')
+
+    def _content(self):
+        assertion, apps_url = self.start_session()
 
         # filling with some data
         # XXX We need realistic stuff here
@@ -38,7 +65,7 @@ class SimpleTest(FunkLoadTestCase):
             app2 = {'origin': 'app2-%d' % i,
                     'last_modified': time.time() + 0.1}
             apps = json.dumps([app1, app2])
-            apps_url = '%s/collections/%s/apps' % (self.root, assertion)
+
             apps = Data('application/json', apps)
             resp = self.post(apps_url, params=apps)
             self.assertEquals(resp.code, 200)

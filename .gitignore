@@ -10,3 +10,4 @@ build
 .channel
 nosetests.xml
 man
+loadtest/simple-test.xml*
