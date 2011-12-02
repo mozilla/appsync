@@ -71,3 +71,6 @@ mach: build build_rpms
 
 clean:
 	rm -rf bin lib include local docs/build
+
+loadonce:
+	cd loadtest; ../bin/fl-run-test simple.py
