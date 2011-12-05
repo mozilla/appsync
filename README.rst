@@ -14,11 +14,19 @@ https://myapps.mozillalabs.com setup, use::
 
     $ git clone https://github.com/mozilla/openwebapps.git
     $ export OPENWEBAPPS=$(pwd)/openwebapps
+    $ git clone https://github.com/mozilla/apps.mozillalabs.com.git
+    $ export APPS=$(pwd)/apps.mozillalabs.com
     $ git clone https://github.com/mozilla/appsync.git
     $ cd appsync
     $ pip -E test-env install -r prod-reqs.txt
     $ ./test-env/bin/paster serve etc/appsync-dev.ini -n myapps --reload
 
+Now you can load ``http://localhost:5000/`` to get the dashboard, and
+to get some apps to install go to
+``http://localhost:5000/apps/appdir/``
+
+You may want to change ``[storage]`` in ``etc/appsync-dev.ini`` to use
+a SQLite database (there are comments in that file to show how).
 
 Benching
 --------
@@ -64,18 +72,16 @@ You can now run a full stress test::
 
 You can configure the load test with a few options:
 
-- **HOST**: the AppSync Server the test is run against 
+- **HOST**: the AppSync Server the test is run against
   (default: http://localhost:5000)
 
-- **DURATION**: the duration of a cycle in seconds 
+- **DURATION**: the duration of a cycle in seconds
   (default: 30)
 
-- **CYCLES**: cycles to run. Number of virtual users to run 
-  per cycle, separated by columns. (default: 5:10:20) 
+- **CYCLES**: cycles to run. Number of virtual users to run
+  per cycle, separated by columns. (default: 5:10:20)
 
-Let's run 50, 100, then 200 users for a duration of 1 minute on the 
+Let's run 50, 100, then 200 users for a duration of 1 minute on the
 myapps.example.com ::
 
     $ make load HOST=http://myapps.example.com DURATION=60 CYCLES=50:100:200
-
-
