@@ -21,6 +21,9 @@ RPM_CHANNEL = prod
 INSTALL = bin/pip install
 INSTALLOPTIONS = -U -i $(PYPI)
 TIMEOUT = 300
+DURATION = 30
+CYCLES = 5:10:20
+HOST = http://localhost:5000
 
 ifdef PYPIEXTRAS
 	PYPIOPTIONS += -e $(PYPIEXTRAS)
@@ -74,3 +77,7 @@ clean:
 
 loadonce:
 	cd loadtest; ../bin/fl-run-test simple.py
+
+load:
+	cd loadtest; ../bin/fl-run-bench -u $(HOST) -c $(CYCLES) -D $(DURATION) simple.py SimpleTest.test_something
+
