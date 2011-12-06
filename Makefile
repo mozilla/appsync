@@ -76,7 +76,7 @@ clean:
 	rm -rf bin lib include local docs/build
 
 loadonce:
-	cd loadtest; ../bin/fl-run-test simple.py
+	cd loadtest; ../bin/fl-run-test -u $(HOST) simple.py
 
 load:
 	cd loadtest; ../bin/fl-run-bench -u $(HOST) -c $(CYCLES) -D $(DURATION) simple.py SimpleTest.test_something
