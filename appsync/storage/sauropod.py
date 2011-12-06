@@ -11,7 +11,7 @@ import pysauropod
 from appsync.storage import IAppSyncDatabase
 from appsync.util import urlb64decode
 from appsync.storage import (CollectionDeletedError, EditConflictError,
-                            StorageAuthError)
+                             StorageAuthError, ConnectionError)
 
 
 def convert_sauropod_errors(func):
@@ -24,6 +24,8 @@ def convert_sauropod_errors(func):
             raise EditConflictError
         except pysauropod.AuthenticationError:
             raise StorageAuthError
+        except pysauropod.ConnectionError:
+            raise ConnectionError
     return wrapper
 
 

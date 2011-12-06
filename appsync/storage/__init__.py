@@ -20,6 +20,11 @@ class StorageAuthError(Exception):
     pass
 
 
+class ConnectionError(Exception):
+    """Error when a connection error occurs"""
+    pass
+
+
 class IAppSyncDatabase(Interface):
     """Interface definition for AppSync database backends.
 

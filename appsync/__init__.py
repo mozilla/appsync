@@ -11,7 +11,7 @@ from pyramid.settings import asbool
 from mozsvc.config import get_configurator
 from mozsvc.plugin import load_and_register
 
-from appsync.storage import StorageAuthError
+from appsync.storage import StorageAuthError, ConnectionError
 
 
 logger = logging.getLogger('appsync')
@@ -47,6 +47,9 @@ class CatchAuthError(object):
         except (HTTPUnauthorized, StorageAuthError), e:
             logger.debug(traceback.format_exc())
             return HTTPUnauthorized(e.message)
+        except ConnectionError, e:
+            logger.debug(traceback.format_exc())
+            return HTTPServiceUnavailable(e.message)
 
 
 def main(global_config, **settings):
