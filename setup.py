@@ -1,8 +1,8 @@
 import os
-
 from setuptools import setup, find_packages
 
 here = os.path.abspath(os.path.dirname(__file__))
+
 
 with open(os.path.join(here, 'README.rst')) as f:
     README = f.read()
@@ -41,6 +41,9 @@ setup(name='appsync',
 
       [paste.filter_app_factory]
       myapps = appsync.myappstest:main
+
+      [console_scripts]
+      appsync-backoff = appsync.scripts.backoff:main
       """,
       paster_plugins=['pyramid'],
       )
