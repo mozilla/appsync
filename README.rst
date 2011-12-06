@@ -85,3 +85,30 @@ Let's run 50, 100, then 200 users for a duration of 1 minute on the
 myapps.example.com ::
 
     $ make load HOST=http://myapps.example.com DURATION=60 CYCLES=50:100:200
+
+
+Setting up the Backoff header in Memcache
+-----------------------------------------
+
+To slow down the clients requests, you can set up a special value in Memcache
+that will add a *X-Sync-Poll* header to all GETs' responses.
+
+The **appsync-backoff** script is provided for this::
+
+
+    $ appsync-backoff get
+    The Backoff is currently set to 10 seconds.
+
+    $ appsync-backoff set 20
+    Backoff set to 20 seconds.
+
+    $ appsync-backoff del
+    Backoff removed
+
+    $ appsync-backoff get
+    No Backoff has been set in Memcached
+
+    $ appsync-backoff -m 127.0.0.1 get
+    No Backoff has been set in Memcached
+
+ 
