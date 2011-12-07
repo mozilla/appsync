@@ -25,6 +25,11 @@ class ConnectionError(Exception):
     pass
 
 
+class ServerError(Exception):
+    """Error when an undefined error occurs"""
+    pass
+
+
 class IAppSyncDatabase(Interface):
     """Interface definition for AppSync database backends.
 

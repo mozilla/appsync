@@ -47,7 +47,7 @@ class CatchAuthError(object):
         except (HTTPUnauthorized, StorageAuthError), e:
             logger.debug(traceback.format_exc())
             return HTTPUnauthorized(e.message)
-        except ConnectionError, e:
+        except (ConnectionError, ServerError), e:
             logger.debug(traceback.format_exc())
             return HTTPServiceUnavailable(e.message)
 
