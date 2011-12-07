@@ -11,7 +11,7 @@ from pyramid.settings import asbool
 from mozsvc.config import get_configurator
 from mozsvc.plugin import load_and_register
 
-from appsync.storage import StorageAuthError, ConnectionError
+from appsync.storage import StorageAuthError, ConnectionError, ServerError
 
 
 logger = logging.getLogger('appsync')
