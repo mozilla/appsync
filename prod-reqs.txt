@@ -31,3 +31,4 @@ Pygments==1.4
 ordereddict==1.1
 pylibmc==1.2.2
 requests==0.8.3
+PyVEP==0.2.0

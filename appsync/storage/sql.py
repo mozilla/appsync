@@ -8,6 +8,8 @@ from sqlalchemy import Integer, String, Text
 
 from zope.interface import implements
 
+import vep
+
 from mozsvc.exceptions import BackendError
 from mozsvc.util import round_time, maybe_resolve_name
 
@@ -15,7 +17,6 @@ from appsync import logger
 from appsync.storage import queries
 from appsync.storage import (IAppSyncDatabase, CollectionDeletedError,
                              StorageAuthError)
-from appsync.util import verify_browserid
 
 
 _TABLES = []
@@ -88,11 +89,14 @@ class SQLDatabase(object):
     implements(IAppSyncDatabase)
 
     def __init__(self, **options):
-        self._verify_browserid = options.pop("verify_browserid", None)
-        if self._verify_browserid is None:
-            self._verify_browserid = verify_browserid
+        verifier = options.pop("verifier", None)
+        if verifier is None:
+            verifier = vep.RemoteVerifier()
         else:
-            self._verify_browserid = maybe_resolve_name(self._verify_browserid)
+            verifier = maybe_resolve_name(verifier)
+            if callable(verifier):
+                verifier = verifier()
+        self._verifier = verifier
 
         #sqlkw = {'pool_size': int(options.get('pool_size', 1)),
         #         'pool_recycle': int(options.get('pool_recycle', 3600)),
@@ -190,8 +194,9 @@ class SQLDatabase(object):
 
     def verify(self, assertion, audience):
         """Authenticate then return a token"""
-        email, data = self._verify_browserid(assertion, audience)
-        if not email:
+        try:
+            email = self._verifier.verify(assertion, audience)["email"]
+        except (ValueError, vep.TrustError):
             raise StorageAuthError
         token = 'CREATE A TOKEN HERE XXX'
         return email, token

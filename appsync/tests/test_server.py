@@ -9,6 +9,8 @@ from webob.dec import wsgify
 from pyramid import testing
 from mozsvc.config import load_into_settings
 
+import vep
+
 from appsync import CatchAuthError
 
 _INI = os.path.join(os.path.dirname(__file__), 'tests.ini')
@@ -49,25 +51,30 @@ class TestSyncApp(unittest.TestCase):
                 os.remove(filename)
 
     def test_verify(self):
+        audience = "http://myapps.mozillalabs.com/"
+        assertion = vep.DummyVerifier.make_assertion("t@m.com", audience)
+
         # missing 'audience'  => 400
-        login_data = {'assertion': 'tarek'}
+        login_data = {'assertion': assertion}
         self.app.post('/verify', login_data, status=400)
 
         # missing 'assertion'  => 400
-        login_data = {'audience': 'tarek'}
+        login_data = {'audience': audience}
         self.app.post('/verify', login_data, status=400)
 
         # bad assertion
-        login_data = {'assertion': 'not-an-email-address', 'audience': 'bouh'}
+        bad_assertion = vep.DummyVerifier.make_assertion("t@m.com",
+                                                         audience,
+                                                         assertion_sig="BAD")
+        login_data = {'assertion': bad_assertion, 'audience': audience}
         resp = self.app.post('/verify', login_data, status=401)
 
         # bad audience
-        login_data = {'assertion': 't@m.com', 'audience': ''}
+        login_data = {'assertion': assertion, 'audience': 'http://evil.com'}
         resp = self.app.post('/verify', login_data, status=401)
 
         # looking good
-        login_data = {'assertion': 't@m.com',
-                      'audience': 'http://myapps.mozillalabs.com/'}
+        login_data = {'assertion': assertion, 'audience': audience}
         resp = self.app.post('/verify', login_data)
         res = resp.json
 
@@ -80,8 +87,10 @@ class TestSyncApp(unittest.TestCase):
 
     def test_protocol(self):
         # start a session
-        login_data = {'assertion': 't@m.com',
-                      'audience': 'http://myapps.mozillalabs.com/'}
+        audience = "http://myapps.mozillalabs.com/"
+        assertion = vep.DummyVerifier.make_assertion("t@m.com", audience)
+        login_data = {'assertion': assertion,
+                      'audience': audience}
         resp = self.app.post('/verify', login_data)
         res = resp.json
 

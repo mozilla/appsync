@@ -10,6 +10,8 @@ from webob.dec import wsgify
 from pyramid import testing
 from mozsvc.config import load_into_settings
 
+import vep
+
 from appsync import CatchAuthError
 from appsync.tests.test_server import TestSyncApp
 from appsync.cache import IAppCache, CacheError
@@ -41,8 +43,9 @@ class TestCache(TestSyncApp):
         cache.set('X-Sync-Poll', 120)
 
         # start a session
-        login_data = {'assertion': 't@m.com',
-                      'audience': 'http://myapps.mozillalabs.com/'}
+        audience = 'http://myapps.mozillalabs.com/'
+        assertion = vep.DummyVerifier.make_assertion("t@m.com", audience)
+        login_data = {'assertion': assertion, "audience": audience}
         resp = self.app.post('/verify', login_data)
         res = resp.json
 
