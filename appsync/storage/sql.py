@@ -5,6 +5,7 @@ from sqlalchemy.exc import OperationalError, TimeoutError
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base, Column
 from sqlalchemy import Integer, String, Text
+from sqlalchemy.sql.expression import text
 
 from zope.interface import implements
 
@@ -109,8 +110,8 @@ class SQLDatabase(object):
             if options.get('create_tables', True):
                 table.create(checkfirst=True)
 
-    def _execute(self, *args, **kw):
-        return execute_retry(self.engine, *args, **kw)
+    def _execute(self, expr, *args, **kw):
+        return execute_retry(self.engine, text(expr), *args, **kw)
 
     def delete(self, user, collection, client_id, reason, token):
         self._execute(queries.DEL_QUERY, user=user, collection=collection)
