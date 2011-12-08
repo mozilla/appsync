@@ -15,7 +15,7 @@ PYPI = http://c.pypi.python.org/simple
 PYPI2RPM = bin/pypi2rpm.py --index=$(PYPI)
 PYPIOPTIONS = -i $(PYPI)
 CHANNEL = dev
-RPM_CHANNEL = prod
+RPM_CHANNEL = dev
 PIP_CACHE = /tmp/pip-cache
 INSTALL = bin/pip install --download-cache=$(PIP_CACHE)
 BUILDAPP = bin/buildapp --download-cache=$(PIP_CACHE)
