@@ -11,14 +11,15 @@ COVERAGE = bin/coverage
 PYLINT = bin/pylint
 SERVER = dev-auth.services.mozilla.com
 SCHEME = https
-BUILDAPP = bin/buildapp
-BUILDRPMS = bin/buildrpms
 PYPI = http://c.pypi.python.org/simple
 PYPI2RPM = bin/pypi2rpm.py --index=$(PYPI)
 PYPIOPTIONS = -i $(PYPI)
 CHANNEL = dev
 RPM_CHANNEL = prod
-INSTALL = bin/pip install
+PIP_CACHE = /tmp/pip-cache
+INSTALL = bin/pip install --download-cache=$(PIP_CACHE)
+BUILDAPP = bin/buildapp --download-cache=$(PIP_CACHE)
+BUILDRPMS = bin/buildrpms --download-cache=$(PIP_CACHE)
 INSTALLOPTIONS = -U -i $(PYPI)
 TIMEOUT = 300
 DURATION = 30
