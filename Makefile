@@ -76,7 +76,7 @@ test:
 	$(NOSE) $(TESTS)
 
 build_rpms:
-	$(PYPI2RPM) --download-cache=$(PIP_CACHE) PyVEP --version=0.2
+	$(PYPI2RPM) --download-cache=$(PIP_CACHE) PyVEP --version=0.2 --dist-dir=rpms
 	$(BUILDRPMS) -t $(TIMEOUT) -c $(RPM_CHANNEL) $(DEPS)
 
 mach: build build_rpms
