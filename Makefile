@@ -1,7 +1,7 @@
 APPNAME = appsync
 DEPS = 
 VIRTUALENV = virtualenv
-PYTHON = bin/python
+PYTHON = $(CURDIR)/bin/python
 NOSE = bin/nosetests -s --with-xunit
 FLAKE8 = bin/flake8
 COVEROPTS = --cover-html --cover-html-dir=html --with-coverage --cover-package=appsync
@@ -49,9 +49,9 @@ INSTALL += $(INSTALLOPTIONS)
 all:	build
 
 build_mcrypto:
-	cd /tmp; wget http://ziade.org/M2Crypto-0.21.1.linux-x86_64.tar.gz
-	$(INSTALL) /tmp/M2Crypto-0.21.1.linux-x86_64.tar.gz
-	rm /tmp/M2Crypto-0.21.1.linux-x86_64.tar.gz
+	cd /tmp; wget http://pypi.python.org/packages/source/M/M2Crypto/M2Crypto-0.21.1.tar.gz#md5=f93d8462ff7646397a9f77a2fe602d17
+	cd /tmp && tar -xzvf M2Crypto-0.21.1.tar.gz && cd M2Crypto-0.21.1 && sed -i -e 's/opensslconf\./opensslconf-x86_64\./' SWIG/_ec.i && sed -i -e 's/opensslconf\./opensslconf-x86_64\./' SWIG/_evp.i && SWIG_FEATURES=-cpperraswarn $(PYTHON) setup.py install
+
 
 build:
 	$(VIRTUALENV) --no-site-packages --distribute .
