@@ -6,3 +6,4 @@ MarkupSafe==0.15
 zope.interface==3.8
 simplejson==2.2.1
 pylibmc
+M2Crypto
