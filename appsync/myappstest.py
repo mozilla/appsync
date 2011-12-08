@@ -58,13 +58,12 @@ def main(app, global_conf, **settings):
                          % (orig, openwebapps))
     apps = os.path.expandvars(os.path.expanduser(settings.get('apps', '')))
     alt_apps = os.path.join(openwebapps, 'site', 'tools', 'apps.mozillalabs.com')
-    if not apps and os.path.exists(alt_apps):
+    if not os.path.exists(apps) and os.path.exists(alt_apps):
         apps = alt_apps
     app = MyAppsTest(app, openwebapps, apps)
     client_test = settings.get('client_test', '')
     client_test = os.path.expandvars(client_test)
-    from paste.deploy.converters import asbool
-    if client_test and asbool(client_test):
+    if client_test:
         from webtestplus.override import ClientTesterMiddleware
         app = ClientTesterMiddleware(app, requires_secret=False)
     return app
