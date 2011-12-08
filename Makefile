@@ -48,6 +48,11 @@ INSTALL += $(INSTALLOPTIONS)
 
 all:	build
 
+build_mcrypto:
+	cd /tmp; wget http://ziade.org/M2Crypto-0.21.1.linux-x86_64.tar.gz
+	$(INSTALL) /tmp/M2Crypto-0.21.1.linux-x86_64.tar.gz
+	rm /tmp/M2Crypto-0.21.1.linux-x86_64.tar.gz
+
 build:
 	$(VIRTUALENV) --no-site-packages --distribute .
 	$(INSTALL) MoPyTools
