@@ -42,26 +42,25 @@ class SimpleTest(FunkLoadTestCase):
         res = json.loads(resp.body)
         auth = res['http_authorization']
         self.setHeader('Authorization', auth)
-        apps_url = '%s/collections/%s/apps' % (self.root, assertion)
-        return assertion, apps_url
+        return '%s/collections/%s/apps' % (self.root, uid)
 
     #
     # The actual tests...
     #
     def _polling(self):
-        assertion, apps_url = self.start_session()
+        apps_url = self.start_session()
         myapps = json.loads(self.get(apps_url).body)
         self.assertTrue('applications' in myapps)
 
     def _delete(self):
-        assertion, apps_url = self.start_session()
+        apps_url = self.start_session()
         myapps = json.loads(self.get(apps_url).body)
         if len(myapps['application']) > 0:
             # let's delete them !
             self.post(apps_url + '?delete=true')
 
     def _content(self):
-        assertion, apps_url = self.start_session()
+        apps_url = self.start_session()
 
         # filling with some data
         # XXX We need realistic stuff here
