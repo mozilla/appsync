@@ -4,7 +4,7 @@ import traceback
 from ConfigParser import NoSectionError
 
 from webob.dec import wsgify
-from webob.exc import HTTPUnauthorized
+from webob.exc import HTTPUnauthorized, HTTPServiceUnavailable
 
 from pyramid.settings import asbool
 
