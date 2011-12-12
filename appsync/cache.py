@@ -34,5 +34,5 @@ class Cache(object):
         except MemcachedError, e:
             raise CacheError(e.message)
 
-    def set(self, key, value):
-        return self._mc.set(self._key(key), value)
+    def set(self, key, value, **options):
+        return self._mc.set(self._key(key), value, **options)

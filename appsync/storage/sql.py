@@ -14,10 +14,12 @@ import vep
 from mozsvc.exceptions import BackendError
 from mozsvc.util import round_time, maybe_resolve_name
 
+from appsync.cache import Cache   # XXX should use it via plugin conf.
 from appsync import logger
 from appsync.storage import queries
 from appsync.storage import (IAppSyncDatabase, CollectionDeletedError,
                              StorageAuthError)
+from appsync.util import gen_uuid
 
 
 _TABLES = []
@@ -110,16 +112,24 @@ class SQLDatabase(object):
             if options.get('create_tables', True):
                 table.create(checkfirst=True)
 
+        self.session_ttl = int(options.get('session_ttl', '300'))
+        cache_options = {'servers': options.get('cache_servers', '127.0.0.1'),
+                         'prefix': options.get('cache_prefix', 'appsyncsql')}
+
+        self.cache = Cache(**cache_options)
+
     def _execute(self, expr, *args, **kw):
         return execute_retry(self.engine, text(expr), *args, **kw)
 
     def delete(self, user, collection, client_id, reason, token):
+        self._check_token(token)
         self._execute(queries.DEL_QUERY, user=user, collection=collection)
         self._execute(queries.ADD_DEL, user=user, collection=collection,
                       reason=reason, client_id=client_id)
         self._execute(queries.DEL_UUID, user=user, collection=collection)
 
     def get_uuid(self, user, collection, token):
+        self._check_token(token)
         res = self._execute(queries.GET_UUID, user=user, collection=collection)
         res = res.fetchone()
         if res is None:
@@ -127,6 +137,7 @@ class SQLDatabase(object):
         return res.uuid
 
     def get_applications(self, user, collection, since, token):
+        self._check_token(token)
         res = self._execute(queries.IS_DEL, user=user, collection=collection)
         deleted = res.fetchone()
         if deleted is not None:
@@ -141,6 +152,7 @@ class SQLDatabase(object):
                  json.loads(app.data)) for app in apps]
 
     def add_applications(self, user, collection, applications, token):
+        self._check_token(token)
         res = self._execute(queries.IS_DEL, user=user, collection=collection)
         deleted = res.fetchone()
         res.close()
@@ -185,6 +197,7 @@ class SQLDatabase(object):
                               last_modified=now)
 
     def get_last_modified(self, user, collection, token):
+        self._check_token(token)
         res = self._execute(queries.LAST_MODIFIED, user=user,
                             collection=collection)
         res = res.fetchone()
@@ -197,7 +210,16 @@ class SQLDatabase(object):
         """Authenticate then return a token"""
         try:
             email = self._verifier.verify(assertion, audience)["email"]
-        except (ValueError, vep.TrustError):
-            raise StorageAuthError
-        token = 'CREATE A TOKEN HERE XXX'
+        except (ValueError, vep.TrustError), e:
+            raise StorageAuthError(e.message)
+
+        # create the token and create a session with it
+        token = gen_uuid(email, audience)
+        self.cache.set(token, (email, audience), time=self.session_ttl)
         return email, token
+
+    def _check_token(self, token):
+        # XXX do we want to check that the user owns that path ?
+        res = self.cache.get(token)
+        if res is None:
+            raise StorageAuthError()
