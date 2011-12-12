@@ -36,6 +36,7 @@ def includeme(config):
     except NoSectionError:
         pass
 
+
 class CatchAuthError(object):
     def __init__(self, app):
         self.app = app
@@ -50,6 +51,9 @@ class CatchAuthError(object):
         except (ConnectionError, ServerError), e:
             logger.debug(traceback.format_exc())
             return HTTPServiceUnavailable(e.message)
+        finally:
+            if hasattr(request, 'cache'):
+                request.cache.cleanup()
 
 
 def main(global_config, **settings):
