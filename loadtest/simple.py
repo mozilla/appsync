@@ -33,7 +33,7 @@ class SimpleTest(FunkLoadTestCase):
 
     def start_session(self):
         uid = 'user%d@moz.com' % random.randint(0, self.vusers-1)
-        audience = 'http://myapps.mozillalabs.com/'
+        audience = 'https://myapps.mozillalabs.com'
         assertion = vep.DummyVerifier.make_assertion(uid, audience)
         params = [['audience', audience],
                   ['assertion', assertion]]
