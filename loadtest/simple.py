@@ -6,6 +6,11 @@ import time
 from funkload.FunkLoadTestCase import FunkLoadTestCase
 from funkload.utils import Data
 
+try:
+    import vep
+except ImportError:
+    print 'You need to install PyVEP'
+    raise
 
 class SimpleTest(FunkLoadTestCase):
 
@@ -27,8 +32,9 @@ class SimpleTest(FunkLoadTestCase):
         return getattr(self, chosen)()
 
     def start_session(self):
-        assertion = 'user%d@moz.com' % random.randint(0, self.vusers-1)
+        uid = 'user%d@moz.com' % random.randint(0, self.vusers-1)
         audience = 'http://myapps.mozillalabs.com/'
+        assertion = vep.DummyVerifier.make_assertion(uid, audience)
         params = [['audience', audience],
                   ['assertion', assertion]]
         resp = self.post(self.root + '/verify', params=params)
