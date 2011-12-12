@@ -26,7 +26,7 @@ class SimpleTest(FunkLoadTestCase):
         pickone += ['_content'] * 3
 
         # and a very few delete stuff
-        pickone += ['_delete'] * 1
+        #pickone += ['_delete'] * 1
 
         chosen = random.choice(pickone)
         return getattr(self, chosen)()
