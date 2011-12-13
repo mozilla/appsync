@@ -4,6 +4,8 @@ import threading
 
 from zope.interface import Interface, implements
 
+from mozsvc.exceptions import BackendError
+
 
 class CacheError(Exception):
     pass
