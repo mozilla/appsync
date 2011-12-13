@@ -15,7 +15,7 @@ requires = ['cornice', 'mozsvc', 'WebTest', 'simplejson', 'SQLAlchemy',
 
 
 setup(name='appsync',
-      version='0.1',
+      version='0.3',
       description='appsync',
       long_description=README + '\n\n' +  CHANGES,
       classifiers=[

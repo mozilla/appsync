@@ -1,11 +1,24 @@
 import base64
 import json
 import urllib
+from os import urandom
+import uuid
+import binascii
+import hashlib
 
 from zope.interface.registry import ComponentLookupError
 from webob.exc import HTTPBadRequest
 from appsync.storage import IAppSyncDatabase
 from appsync.cache import IAppCache
+
+
+def gen_uuid(email, audience):
+    """Generates a UUID for the given user & audience
+    """
+    # cannot be reverted XXX do we want ?
+    salt = binascii.b2a_hex(urandom(20))
+    udata = hashlib.md5(email + audience).hexdigest()
+    return str(uuid.uuid3(uuid.NAMESPACE_DNS, salt + udata))
 
 
 def get_storage(request):

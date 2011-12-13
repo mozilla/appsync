@@ -119,7 +119,12 @@ class SauropodDatabase(object):
 
     def _resume_session(self, token):
         """Resume the Sauropod session encoded in the given token."""
-        userid, sessionid = token.split(":", 1)
+        try:
+            userid, sessionid = token.split(":", 1)
+        except ValueError:
+            # the token is corrupted, somehow
+            raise pysauropod.AuthenticationError('Corrupted token')
+
         return self._store.resume_session(userid, sessionid)
 
     @convert_sauropod_errors
