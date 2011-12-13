@@ -4,19 +4,33 @@ import threading
 
 from zope.interface import Interface, implements
 
-from mozsvc.exceptions import BackendError
-
 
 class CacheError(Exception):
     pass
 
 
 class IAppCache(Interface):
-    def get(self, key):
-        return self._mc.get(self._key(key))
 
-    def set(self, key, value):
-        return self._mc.set(self._key(key), value)
+    def cleanup():
+        """Cleanup the pool"""
+
+    def flush_all():
+        """Flush all"""
+
+    def get(key):
+        """get a key"""
+
+    def delete(key):
+        """"Delete a key"""
+
+    def incr(key, size=1):
+        """Increment a counter"""
+
+    def set(key, value, time=0):
+        """Set a key"""
+
+    def get_set(key, func):
+        """GetSet a key"""
 
 
 class Cache(object):
@@ -53,7 +67,7 @@ class Cache(object):
                 return mc.get(key)
             except MemcachedError, err:
                 # memcache seems down
-                raise BackendError(str(err))
+                raise CacheError(str(err))
 
     def delete(self, key):
         key = self._key(key)
@@ -65,7 +79,7 @@ class Cache(object):
                 return False
             except MemcachedError, err:
                 # memcache seems down
-                raise BackendError(str(err))
+                raise CacheError(str(err))
 
     def incr(self, key, size=1):
         key = self._key(key)
@@ -76,7 +90,7 @@ class Cache(object):
             except NotFound:
                 return mc.set(key, size)
             except MemcachedError, err:
-                raise BackendError(str(err))
+                raise CacheError(str(err))
 
     def set(self, key, value, time=0):
         key = self._key(key)
@@ -84,9 +98,9 @@ class Cache(object):
         with self.pool.reserve() as mc:
             try:
                 if not mc.set(key, value, time=time):
-                    raise BackendError()
+                    raise CacheError()
             except MemcachedError, err:
-                raise BackendError(str(err))
+                raise CacheError(str(err))
 
     def get_set(self, key, func):
         res = self.get(key)
