@@ -117,6 +117,7 @@ class SQLDatabase(object):
                          'prefix': options.get('cache_prefix', 'appsyncsql')}
 
         self.cache = Cache(**cache_options)
+        self.authentication = bool(options.get('authentication', True))
 
     def _execute(self, expr, *args, **kw):
         return execute_retry(self.engine, text(expr), *args, **kw)
@@ -208,6 +209,9 @@ class SQLDatabase(object):
 
     def verify(self, assertion, audience):
         """Authenticate then return a token"""
+        if not self.authentication:
+            raise NotImplementedError('authentication not actrivated')
+
         try:
             email = self._verifier.verify(assertion, audience)["email"]
         except (ValueError, vep.TrustError), e:
@@ -219,6 +223,10 @@ class SQLDatabase(object):
         return email, token
 
     def _check_token(self, token):
+        if not self.authentication:
+            # bypass authentication
+            return
+
         # XXX do we want to check that the user owns that path ?
         res = self.cache.get(token)
         if res is None:
