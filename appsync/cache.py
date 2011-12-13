@@ -78,7 +78,7 @@ class Cache(object):
             except MemcachedError, err:
                 raise BackendError(str(err))
 
-    def set(self, key, value, time=None):
+    def set(self, key, value, time=0):
         key = self._key(key)
 
         with self.pool.reserve() as mc:
