@@ -218,7 +218,7 @@ class SQLDatabase(object):
         try:
             email = self._verifier.verify(assertion, audience)["email"]
         except (ValueError, vep.TrustError), e:
-            raise StorageAuthError(e.message)
+            raise StorageAuthError(str(e))
 
         # create the token and create a session with it
         token = gen_uuid(email, audience)
