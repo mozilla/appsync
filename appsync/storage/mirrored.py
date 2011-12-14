@@ -9,6 +9,7 @@ class MirroredDatabase(object):
     def __init__(self, **options):
         self._readwrite = self._backend('readwrite', options)
         self._write = self._backend('write', options)
+        self._write.set_authentication(False)
 
     def _backend(self, name, options):
         klass = resolve_name(options[name])

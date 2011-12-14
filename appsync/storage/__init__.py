@@ -95,3 +95,12 @@ class IAppSyncDatabase(Interface):
         collection.  They will be marked as modified as of the current server
         time, which is returned.
         """
+
+    def set_authentication(state):
+        """Sets the authentication flag (True or False).
+
+        It should be True by default.
+
+        When set to False, verify raises a NotImplementedError and
+        other APIs don't check the token.
+        """

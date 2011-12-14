@@ -117,7 +117,10 @@ class SQLDatabase(object):
                          'prefix': options.get('cache_prefix', 'appsyncsql')}
 
         self.cache = Cache(**cache_options)
-        self.authentication = bool(options.get('authentication', True))
+        self.authentication = True
+
+    def set_authentication(self, state):
+        self.authentication = state
 
     def _execute(self, expr, *args, **kw):
         return execute_retry(self.engine, text(expr), *args, **kw)
