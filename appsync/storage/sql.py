@@ -210,7 +210,7 @@ class SQLDatabase(object):
     def verify(self, assertion, audience):
         """Authenticate then return a token"""
         if not self.authentication:
-            raise NotImplementedError('authentication not actrivated')
+            raise NotImplementedError('authentication not activated')
 
         try:
             email = self._verifier.verify(assertion, audience)["email"]
