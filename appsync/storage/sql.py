@@ -117,7 +117,10 @@ class SQLDatabase(object):
                          'prefix': options.get('cache_prefix', 'appsyncsql')}
 
         self.cache = Cache(**cache_options)
-        self.authentication = bool(options.get('authentication', True))
+        self.authentication = True
+
+    def set_authentication(self, state):
+        self.authentication = state
 
     def _execute(self, expr, *args, **kw):
         return execute_retry(self.engine, text(expr), *args, **kw)
@@ -210,7 +213,7 @@ class SQLDatabase(object):
     def verify(self, assertion, audience):
         """Authenticate then return a token"""
         if not self.authentication:
-            raise NotImplementedError('authentication not actrivated')
+            raise NotImplementedError('authentication not activated')
 
         try:
             email = self._verifier.verify(assertion, audience)["email"]

@@ -97,6 +97,11 @@ class SauropodDatabase(object):
 
     def __init__(self, store_url, appid, **kwds):
         self._store = pysauropod.connect(store_url, appid, **kwds)
+        self.authentication = True
+
+    def set_authentication(self, state):
+        if not state:
+            raise ValueError("The Sauropod backend cannot work without tokens")
 
     @convert_sauropod_errors
     def verify(self, assertion, audience):
