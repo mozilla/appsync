@@ -191,7 +191,7 @@ def get_data(request):
             poll_interval = cache.get('X-Sync-Poll')
         except CacheError, e:
             # a well, nevermind then
-            logger.error(e.message)
+            logger.error(str(e))
         else:
             if poll_interval is not None:
                 request.response.headers['X-Sync-Poll'] = str(poll_interval)
