@@ -38,8 +38,11 @@ def includeme(config):
 
 
 class CatchAuthError(object):
-    def __init__(self, app):
+    def __init__(self, app, retry_after='120'):
         self.app = app
+        if isinstance(retry_after, int):
+            retry_after = str(retry_after)
+        self.retry_after = retry_after
 
     @wsgify
     def __call__(self, request):
@@ -48,9 +51,10 @@ class CatchAuthError(object):
         except (HTTPUnauthorized, StorageAuthError), e:
             logger.debug(traceback.format_exc())
             return HTTPUnauthorized(e.message)
-        except (ConnectionError, ServerError), e:
+        except (ConnectionError, ServerError, HTTPServiceUnavailable), e:
             logger.error(traceback.format_exc())
-            return HTTPServiceUnavailable(e.message)
+            return HTTPServiceUnavailable(e.message,
+                                          retry_after=self.retry_after)
         finally:
             if hasattr(request, 'cache'):
                 request.cache.cleanup()
@@ -73,6 +77,7 @@ def main(global_config, **settings):
         config.registry['mock_browserid'] = True
 
     app = config.make_wsgi_app()
-    errapp = CatchAuthError(app)
+    retry_after = config.settings('global.retry_after', '120')
+    errapp = CatchAuthError(app, retry_after=retry_after)
     errapp.registry = app.registry
     return errapp

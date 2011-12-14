@@ -12,6 +12,8 @@ from mozsvc.config import load_into_settings
 import vep
 
 from appsync import CatchAuthError
+from appsync.storage import IAppSyncDatabase, ServerError
+
 
 _INI = os.path.join(os.path.dirname(__file__), 'tests.ini')
 
@@ -40,7 +42,9 @@ class TestSyncApp(unittest.TestCase):
         self.config.add_settings(settings)
         self.config.include("appsync")
         wsgiapp = self.config.make_wsgi_app()
-        app = CatchErrors(CatchAuthError(wsgiapp))
+        retry_after = self.config.registry.settings.get('global.retry_after',
+                '120')
+        app = CatchErrors(CatchAuthError(wsgiapp, retry_after))
         self.app = TestApp(app)
 
     def tearDown(self):
@@ -218,3 +222,23 @@ class TestSyncApp(unittest.TestCase):
     def test_heartbeat(self):
         res = self.app.get('/__heartbeat__')
         self.assertEqual(res.body, 'OK')
+
+    def test_503(self):
+        storage = self.config.registry.getUtility(IAppSyncDatabase)
+        old = storage.verify
+
+        def _break(*args):
+            raise ServerError()
+
+        storage.verify = _break
+
+        try:
+            # start a session
+            login_data = {'assertion': '',
+                          'audience': ''}
+            res = self.app.post('/verify', login_data, status=503)
+        finally:
+            storage.verify = old
+
+        wanted = self.config.registry.settings.get('global.retry_after', '120')
+        self.assertEqual(res.headers['Retry-After'], str(wanted))
