@@ -142,12 +142,29 @@ class SQLDatabase(object):
 
     def get_applications(self, user, collection, since, token):
         self._check_token(token)
+
+        # is this a deleted collection ?
         res = self._execute(queries.IS_DEL, user=user, collection=collection)
         deleted = res.fetchone()
         if deleted is not None:
             raise CollectionDeletedError(deleted.client_id, deleted.reason)
 
+        # get the last modified
+        res = self._execute(queries.LAST_MODIFIED, user=user,
+                            collection=collection)
+        res = res.fetchone()
+        if res in (None, (None,)):
+            last_modified = None
+        else:
+            last_modified = res.last_modified
+
+        # using hundredth of seconds
         since = int(round_time(since) * 100)
+
+        # if since is after last_modified we just return []
+        if last_modified < since:
+            return []
+
         apps = self._execute(queries.GET_QUERY, user=user,
                              collection=collection, since=since)
 
@@ -218,7 +235,7 @@ class SQLDatabase(object):
         try:
             email = self._verifier.verify(assertion, audience)["email"]
         except (ValueError, vep.TrustError), e:
-            raise StorageAuthError(e.message)
+            raise StorageAuthError(str(e))
 
         # create the token and create a session with it
         token = gen_uuid(email, audience)

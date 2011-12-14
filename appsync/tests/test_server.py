@@ -145,6 +145,14 @@ class TestSyncApp(unittest.TestCase):
         self.assertEqual(data['since'], 0)
         self.assertEqual(len(data['applications']), 2)
 
+        # getting again, with since=now
+        since = time.time()
+        data = self.app.get('/collections/t@m.com/blah?since=%s' % since,
+                             extra_environ=extra).json
+
+        # nothing has changed, empty apps
+        self.assertEqual(len(data['applications']), 0)
+
         # let's delete some stuff
         delete = {'client_id': 'client1',
                   'reason': 'well...'}
