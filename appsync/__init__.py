@@ -49,7 +49,7 @@ class CatchAuthError(object):
             logger.debug(traceback.format_exc())
             return HTTPUnauthorized(e.message)
         except (ConnectionError, ServerError), e:
-            logger.debug(traceback.format_exc())
+            logger.error(traceback.format_exc())
             return HTTPServiceUnavailable(e.message)
         finally:
             if hasattr(request, 'cache'):
