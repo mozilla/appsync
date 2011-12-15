@@ -4,7 +4,7 @@ import simplejson as json
 from sqlalchemy.exc import OperationalError, TimeoutError
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base, Column
-from sqlalchemy import Integer, String, Text
+from sqlalchemy import Integer, String, Text, BigInteger
 from sqlalchemy.sql.expression import text
 
 from zope.interface import implements
@@ -47,7 +47,7 @@ class Application(_Base):
     user = Column(String(256), nullable=False)
     collection = Column(String(256), nullable=False)
     origin = Column(String(256), nullable=False)
-    last_modified = Column(Integer, nullable=False)
+    last_modified = Column(BigInteger, nullable=False)
     data = Column(Text)
     ## FIXME: user+collection+origin should/could be unique
 
