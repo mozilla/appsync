@@ -153,22 +153,33 @@ class SauropodDatabase(object):
         if self.cache is None:
             return
         cache_key = _key(user, collection, 'meta')
-        self.cache.delete(cache_key)
+        try:
+            self.cache.delete(cache_key)
+        except CacheError:
+            logger.error('Unable to delete a cache entry')
 
     def _set_cached_metadata(self, session, user, collection, data, etag):
         key = collection + "::meta"
-        session.set(key, json.dumps(data), if_match=etag)
+        doc = session.set(key, json.dumps(data), if_match=etag)
 
-        if self.cache:
-            doc = session.getitem(key)
+        if self.cache is not None:
             cache_key = _key(user, collection, 'meta')
-            self.cache.set(cache_key, doc, self.cache_ttl)
+            try:
+                self.cache.set(cache_key, doc, self.cache_ttl)
+            except CacheError:
+                logger.error('Unable to read the metadata in the cache.')
+
 
     def _get_cached_metadata(self, session, user, collection):
         # getting the cached value if possible
-        if self.cache is None:
+        if self.cache is not None:
             cache_key = _key(user, collection, 'meta')
-            cached = self.cache.get(cache_key)
+            try:
+                cached = self.cache.get(cache_key)
+            except CacheError:
+                logger.error('Unable to read the metadata in the cache.')
+                cached = None
+
             if cached is not None:
                 return cached
 
@@ -176,10 +187,13 @@ class SauropodDatabase(object):
         doc = session.getitem(collection + "::meta")
 
         # set the cache
-        if self.cache is None:
-            self.cache.set(cache_key, doc, time=self.cache_ttl)
+        if self.cache is not None:
+            try:
+                self.cache.set(cache_key, doc, time=self.cache_ttl)
+            except CacheError:
+                logger.error('Was unable to cache the metadata.')
 
-        return res
+        return doc
 
     @convert_sauropod_errors
     def get_last_modified(self, user, collection, token):
