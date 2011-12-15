@@ -57,7 +57,8 @@ def main(app, global_conf, **settings):
                          "doesn't seem to be a valid checkout"
                          % (orig, openwebapps))
     apps = os.path.expandvars(os.path.expanduser(settings.get('apps', '')))
-    alt_apps = os.path.join(openwebapps, 'site', 'tools', 'apps.mozillalabs.com')
+    alt_apps = os.path.join(openwebapps, 'site', 'tools',
+                            'apps.mozillalabs.com')
     if not apps and os.path.exists(alt_apps):
         apps = alt_apps
     app = MyAppsTest(app, openwebapps, apps)

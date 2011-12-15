@@ -1,18 +1,9 @@
 import os
-import unittest
-import time
-import json
 
 from zope.interface.registry import ComponentLookupError
-from webtest import TestApp
-from webob import exc
-from webob.dec import wsgify
-from pyramid import testing
-from mozsvc.config import load_into_settings
 
 import vep
 
-from appsync import CatchAuthError
 from appsync.tests.test_server import TestSyncApp
 from appsync.cache import IAppCache, CacheError
 

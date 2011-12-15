@@ -8,7 +8,8 @@ from mozsvc.util import round_time
 
 import pysauropod
 
-from appsync.cache import Cache   # XXX should use it via plugin conf.
+from appsync import logger
+from appsync.cache import Cache, CacheError
 from appsync.storage import IAppSyncDatabase
 from appsync.util import urlb64decode
 from appsync.storage import (CollectionDeletedError, EditConflictError,
@@ -169,7 +170,6 @@ class SauropodDatabase(object):
             except CacheError:
                 logger.error('Unable to read the metadata in the cache.')
 
-
     def _get_cached_metadata(self, session, user, collection):
         # getting the cached value if possible
         if self.cache is not None:
@@ -216,7 +216,6 @@ class SauropodDatabase(object):
         s = self._resume_session(token)
         # Grab the collection metadata as it is before deleting anything.
         # We can bail out early if it's already deleted.
-        meta_key = collection + "::meta"
         try:
             meta = self._get_cached_metadata(s, user, collection)
         except KeyError:
@@ -239,7 +238,7 @@ class SauropodDatabase(object):
         meta_data["etags"] = {}
         meta_data["uuid"] = None
         meta_data["last_modified"] = round_time()
-        self._set_cached_metadata(s, user, collectio, meta_data, meta_etag)
+        self._set_cached_metadata(s, user, collection, meta_data, meta_etag)
 
         # Now we can delete the applications that were recorded in
         # the metadata.
@@ -313,7 +312,6 @@ class SauropodDatabase(object):
         s = self._resume_session(token)
         # Load the current metadata state so we can update it when finished.
         # We need it first so we can detect conflicts from concurrent uploads.
-        meta_key = collection + "::meta"
         try:
             meta = self._get_cached_metadata(s, user, collection)
         except KeyError:

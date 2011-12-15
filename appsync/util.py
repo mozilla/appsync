@@ -1,6 +1,4 @@
 import base64
-import json
-import urllib
 from os import urandom
 import uuid
 import binascii
