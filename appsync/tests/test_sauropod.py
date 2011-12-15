@@ -8,6 +8,9 @@ import wsgi_intercept
 from vep.verifiers.dummy import DummyVerifier
 import vep
 
+from appsync.storage import IAppSyncDatabase
+from appsync.tests.support import memcache_up
+
 
 def install_opener():
     # httplib patch
@@ -40,10 +43,16 @@ def uninstall_opener():
 class FakeSauropod(object):
 
     _data = collections.defaultdict(dict)
+    hits = 0
 
     @classmethod
     def clear(cls):
         cls._data.clear()
+        cls.hits = 0
+
+    @classmethod
+    def incr_hit(cls):
+        cls.hits += 1
 
     def __init__(self):
         self.verif = DummyVerifier()
@@ -80,6 +89,7 @@ class FakeSauropod(object):
                 except KeyError:
                     response.body = '{}'
                 response.status = 200
+                self.incr_hit()
             elif request.method == 'PUT':
                 self._data[user][key] = request.POST['value']
                 response.status = 200
@@ -110,3 +120,31 @@ class TestSauropod(TestSyncApp):
         wsgi_intercept.remove_wsgi_intercept('sauropod', 9999)
         uninstall_opener()
         super(TestSyncApp, self).tearDown()
+
+    def test_hits(self):
+        # do we have memcached running ?
+        if not memcache_up():
+            return
+
+        # running with memcached
+        current = FakeSauropod.hits
+        self.test_protocol()
+        hits_with_cache = FakeSauropod.hits - current
+
+        # reset the data
+        FakeSauropod.clear()
+
+        # let's deactivate the cache
+        storage = self.config.registry.getUtility(IAppSyncDatabase)
+        current = FakeSauropod.hits
+        old = storage.cache
+        storage.cache = None
+        try:
+            self.test_protocol()
+        finally:
+            storage.cache = old
+
+        hits_no_cache = FakeSauropod.hits - current
+
+        # when cache is enabled, we hits more than two times the DB
+        self.assertTrue(hits_with_cache * 2 < hits_no_cache)

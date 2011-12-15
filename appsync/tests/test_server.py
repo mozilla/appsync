@@ -13,6 +13,7 @@ import vep
 
 from appsync import CatchAuthError
 from appsync.storage import IAppSyncDatabase, ServerError
+from appsync.tests.support import memcache_up
 
 
 _INI = os.path.join(os.path.dirname(__file__), 'tests.ini')
@@ -30,6 +31,11 @@ class CatchErrors(object):
             return e
 
 
+class FakeCache(dict):
+    def set(self, key, value, *args, **kw):
+        self[key] = value
+
+
 class TestSyncApp(unittest.TestCase):
 
     ini = _INI
@@ -41,6 +47,20 @@ class TestSyncApp(unittest.TestCase):
         load_into_settings(self.ini, settings)
         self.config.add_settings(settings)
         self.config.include("appsync")
+
+        # do we have memcached support, if not
+        # and if we use the SQL backend we need to
+        # adapt its options
+        if not memcache_up():
+            backend = self.config.registry.settings['storage.backend']
+            storage = self.config.registry.getUtility(IAppSyncDatabase)
+            if backend == 'appsync.storage.sql.SQLDatabase':
+                storage.cache = FakeCache()
+            elif backend == 'appsync.storage.mirrored.MirroredDatabase':
+                rw = storage._readwrite
+                if rw.__class__.__name__ == 'SQLDatabase':
+                    rw.cache = FakeCache()
+
         wsgiapp = self.config.make_wsgi_app()
         retry_after = self.config.registry.settings.get('global.retry_after',
                 '120')
