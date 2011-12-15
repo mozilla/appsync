@@ -50,10 +50,10 @@ class CatchAuthError(object):
             return request.get_response(self.app)
         except (HTTPUnauthorized, StorageAuthError), e:
             logger.debug(traceback.format_exc())
-            return HTTPUnauthorized(e.message)
+            return HTTPUnauthorized(str(e))
         except (ConnectionError, ServerError, HTTPServiceUnavailable), e:
             logger.error(traceback.format_exc())
-            return HTTPServiceUnavailable(e.message,
+            return HTTPServiceUnavailable(str(e),
                                           retry_after=self.retry_after)
         finally:
             if hasattr(request, 'cache'):
