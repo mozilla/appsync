@@ -108,7 +108,6 @@ class TestSyncApp(unittest.TestCase):
         # getting the collection 'blah'
         data = self.app.get('/collections/t@m.com/blah',
                             extra_environ=extra).json
-
         # what did we get ?
         self.assertTrue(data['until'] <= time.time() + 0.1)
         self.assertEqual(data['since'], 0)

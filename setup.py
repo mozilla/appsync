@@ -11,7 +11,7 @@ with open(os.path.join(here, 'CHANGES.txt')) as f:
     CHANGES = f.read()
 
 requires = ['cornice', 'mozsvc', 'WebTest', 'simplejson', 'SQLAlchemy',
-            'pylibmc', 'PyVEP']
+            'pylibmc', 'PyVEP', 'wsgi_intercept']
 
 
 setup(name='appsync',

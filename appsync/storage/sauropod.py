@@ -34,7 +34,8 @@ def convert_sauropod_errors(func):
 
 
 def _key(*args):
-    return ':::'.join(args)
+    key = ':::'.join(args)
+    return str(key)
 
 
 class SauropodDatabase(object):
@@ -300,7 +301,7 @@ class SauropodDatabase(object):
             key = "%s::item::%s" % (collection, appid)
             try:
                 app = json.loads(s.get(key))
-            except KeyError:
+            except KeyError, e:
                 # It has been deleted; ignore it.
                 continue
             updates.append((last_modified, app))
