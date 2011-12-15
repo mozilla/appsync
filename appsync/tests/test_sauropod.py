@@ -1,5 +1,4 @@
 import os
-import time
 import collections
 import json
 
@@ -16,7 +15,6 @@ def install_opener():
     install()
 
     # requests' patch
-    import wsgi_intercept
     from requests.packages.urllib3 import connectionpool
 
     connectionpool.old_http = connectionpool.HTTPConnection
@@ -33,15 +31,10 @@ def uninstall_opener():
     # httplib unpatch
     from wsgi_intercept.httplib_intercept import uninstall
     uninstall()
-
     # requests' unpatch
-    import wsgi_intercept
     from requests.packages.urllib3 import connectionpool
-
     connectionpool.HTTPConnection = connectionpool.old_http
     connectionpool.HTTPSConnection = connectionpool.old_https
-
-
 
 
 class FakeSauropod(object):
@@ -68,11 +61,10 @@ class FakeSauropod(object):
                 return response
 
             try:
-                email = self.verif.verify(assertion, audience)["email"]
+                self.verif.verify(assertion, audience)["email"]
             except (ValueError, vep.TrustError):
                 response.status = 401
                 return response
-
 
             response.body = 'sessionid'
             return response
@@ -94,7 +86,6 @@ class FakeSauropod(object):
             elif request.method == 'DELETE':
                 del self._data[user][key]
                 response.status = 200
-
 
             return response
 

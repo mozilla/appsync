@@ -301,7 +301,7 @@ class SauropodDatabase(object):
             key = "%s::item::%s" % (collection, appid)
             try:
                 app = json.loads(s.get(key))
-            except KeyError, e:
+            except KeyError:
                 # It has been deleted; ignore it.
                 continue
             updates.append((last_modified, app))
