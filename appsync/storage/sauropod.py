@@ -169,7 +169,7 @@ class SauropodDatabase(object):
             try:
                 self.cache.set(cache_key, doc, self.cache_ttl)
             except CacheError:
-                logger.error('Unable to read the metadata in the cache.')
+                logger.error('Unable to write the metadata in the cache.')
 
     def _get_cached_metadata(self, session, user, collection):
         # getting the cached value if possible
