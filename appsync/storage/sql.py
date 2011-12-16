@@ -14,11 +14,11 @@ import vep
 from mozsvc.exceptions import BackendError
 from mozsvc.util import round_time, maybe_resolve_name
 
-from appsync.cache import Cache   # XXX should use it via plugin conf.
+from appsync.cache import Cache, CacheError
 from appsync import logger
 from appsync.storage import queries
 from appsync.storage import (IAppSyncDatabase, CollectionDeletedError,
-                             StorageAuthError)
+                             StorageAuthError, ConnectionError)
 from appsync.util import gen_uuid
 
 
@@ -239,7 +239,13 @@ class SQLDatabase(object):
 
         # create the token and create a session with it
         token = gen_uuid(email, audience)
-        self.cache.set(token, (email, audience), time=self.session_ttl)
+
+        # if this generates a cache error, we cannot store the token
+        try:
+            self.cache.set(token, (email, audience), time=self.session_ttl)
+        except CacheError:
+            raise ConnectionError()
+
         return email, token
 
     def _check_token(self, token):
@@ -248,6 +254,11 @@ class SQLDatabase(object):
             return
 
         # XXX do we want to check that the user owns that path ?
-        res = self.cache.get(token)
+        try:
+            res = self.cache.get(token)
+        except CacheError:
+            # the cache was unreachable so no auth possible
+            raise StorageAuthError()
+
         if res is None:
             raise StorageAuthError()

@@ -1,16 +1,7 @@
 import os
-import unittest
 import time
-import json
-
-from webtest import TestApp
-from webob import exc
-from webob.dec import wsgify
-from pyramid import testing
-from mozsvc.config import load_into_settings
 
 from appsync.storage import IAppSyncDatabase, StorageAuthError
-from appsync import CatchAuthError
 from appsync.tests.test_server import TestSyncApp, vep
 
 
@@ -69,5 +60,3 @@ class TestMirror(TestSyncApp):
         # which would fail on the master
         self.assertRaises(StorageAuthError, master.add_applications,
                           't@m.com', 'blah', apps, 'faketoken')
-
-
