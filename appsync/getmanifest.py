@@ -4,6 +4,9 @@ from webob import Response
 import urllib
 
 
+EXPECT_CONTENT_TYPE = 'application/x-web-app-manifest+json'
+
+
 class GetManifest(object):
     def __init__(self):
         pass
@@ -20,6 +23,11 @@ class GetManifest(object):
         if r.getcode() != 200:
             raise exc.HTTPBadGateway('URL returned error code: %s' \
                         % r.getcode())
+        content_type = (r.headers.getheader('content-type') or 'application/octet-stream').lower()
+        if content_type != EXPECT_CONTENT_TYPE:
+            raise exc.HTTPBadGateway(
+                'You may only fetch URLs that have a Content-Type of %s'
+                % EXPECT_CONTENT_TYPE)
         return Response(
             body=r.read(),
             content_type=r.headers.getheader('content-type'))
