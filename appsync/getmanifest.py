@@ -30,7 +30,7 @@ class GetManifest(object):
                 % EXPECT_CONTENT_TYPE)
         return Response(
             body=r.read(),
-            content_type=r.headers.getheader('content-type'))
+            content_type=content_type)
 
 
 def main(global_conf, **settings):
