@@ -4,7 +4,7 @@ import simplejson as json
 from sqlalchemy.exc import OperationalError, TimeoutError
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base, Column
-from sqlalchemy import Integer, String, Text
+from sqlalchemy import Integer, String, Text, BigInteger
 from sqlalchemy.sql.expression import text
 
 from zope.interface import implements
@@ -14,11 +14,11 @@ import vep
 from mozsvc.exceptions import BackendError
 from mozsvc.util import round_time, maybe_resolve_name
 
-from appsync.cache import Cache   # XXX should use it via plugin conf.
+from appsync.cache import Cache, CacheError
 from appsync import logger
 from appsync.storage import queries
 from appsync.storage import (IAppSyncDatabase, CollectionDeletedError,
-                             StorageAuthError)
+                             StorageAuthError, ConnectionError)
 from appsync.util import gen_uuid
 
 
@@ -47,7 +47,7 @@ class Application(_Base):
     user = Column(String(256), nullable=False)
     collection = Column(String(256), nullable=False)
     origin = Column(String(256), nullable=False)
-    last_modified = Column(Integer, nullable=False)
+    last_modified = Column(BigInteger, nullable=False)
     data = Column(Text)
     ## FIXME: user+collection+origin should/could be unique
 
@@ -239,7 +239,13 @@ class SQLDatabase(object):
 
         # create the token and create a session with it
         token = gen_uuid(email, audience)
-        self.cache.set(token, (email, audience), time=self.session_ttl)
+
+        # if this generates a cache error, we cannot store the token
+        try:
+            self.cache.set(token, (email, audience), time=self.session_ttl)
+        except CacheError:
+            raise ConnectionError()
+
         return email, token
 
     def _check_token(self, token):
@@ -248,6 +254,11 @@ class SQLDatabase(object):
             return
 
         # XXX do we want to check that the user owns that path ?
-        res = self.cache.get(token)
+        try:
+            res = self.cache.get(token)
+        except CacheError:
+            # the cache was unreachable so no auth possible
+            raise StorageAuthError()
+
         if res is None:
             raise StorageAuthError()

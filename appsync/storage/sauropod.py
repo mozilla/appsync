@@ -8,6 +8,8 @@ from mozsvc.util import round_time
 
 import pysauropod
 
+from appsync import logger
+from appsync.cache import Cache, CacheError
 from appsync.storage import IAppSyncDatabase
 from appsync.util import urlb64decode
 from appsync.storage import (CollectionDeletedError, EditConflictError,
@@ -29,6 +31,11 @@ def convert_sauropod_errors(func):
         except pysauropod.ServerError:
             raise ServerError
     return wrapper
+
+
+def _key(*args):
+    key = ':::'.join(args)
+    return str(key)
 
 
 class SauropodDatabase(object):
@@ -96,6 +103,15 @@ class SauropodDatabase(object):
     implements(IAppSyncDatabase)
 
     def __init__(self, store_url, appid, **kwds):
+        cache_activated = kwds.pop('cache_activated', False)
+        if cache_activated:
+            cache_options = {'servers': kwds.pop('cache_servers', '127.0.0.1'),
+                             'prefix': kwds.pop('cache_prefix',
+                                                'appsyncsauropod')}
+            self.cache_ttl = kwds.pop('cache_ttl', 300)
+            self.cache = Cache(**cache_options)
+        else:
+            self.cache = self.cache_ttl = None
         self._store = pysauropod.connect(store_url, appid, **kwds)
         self.authentication = True
 
@@ -132,13 +148,63 @@ class SauropodDatabase(object):
 
         return self._store.resume_session(userid, sessionid)
 
+    #
+    # cache managment
+    #
+    def _purge_cache(self, user, collection):
+        if self.cache is None:
+            return
+        cache_key = _key(user, collection, 'meta')
+        try:
+            self.cache.delete(cache_key)
+        except CacheError:
+            logger.error('Unable to delete a cache entry')
+
+    def _set_cached_metadata(self, session, user, collection, data, etag):
+        key = collection + "::meta"
+        doc = session.set(key, json.dumps(data), if_match=etag)
+
+        if self.cache is not None:
+            cache_key = _key(user, collection, 'meta')
+            try:
+                self.cache.set(cache_key, doc, self.cache_ttl)
+            except CacheError:
+                logger.error('Unable to write the metadata in the cache.')
+
+    def _get_cached_metadata(self, session, user, collection):
+        # getting the cached value if possible
+        if self.cache is not None:
+            cache_key = _key(user, collection, 'meta')
+            try:
+                cached = self.cache.get(cache_key)
+            except CacheError:
+                logger.error('Unable to read the metadata in the cache.')
+                cached = None
+
+            if cached is not None:
+                return cached
+
+        # getting the meta document.
+        doc = session.getitem(collection + "::meta")
+
+        # set the cache
+        if self.cache is not None:
+            try:
+                self.cache.set(cache_key, doc, time=self.cache_ttl)
+            except CacheError:
+                logger.error('Was unable to cache the metadata.')
+
+        return doc
+
     @convert_sauropod_errors
     def get_last_modified(self, user, collection, token):
         """Get the latest last-modified time for any app in the collection."""
         s = self._resume_session(token)
+
         # To get the last-modified time we need only read the meta document.
         try:
-            meta = json.loads(s.get(collection + "::meta"))
+            item = self._get_cached_metadata(s, user, collection)
+            meta = json.loads(item.value)
         except KeyError:
             return 0
         if meta.get("deleted", False):
@@ -151,9 +217,8 @@ class SauropodDatabase(object):
         s = self._resume_session(token)
         # Grab the collection metadata as it is before deleting anything.
         # We can bail out early if it's already deleted.
-        meta_key = collection + "::meta"
         try:
-            meta = s.getitem(meta_key)
+            meta = self._get_cached_metadata(s, user, collection)
         except KeyError:
             meta_etag = ""
             meta_data = {}
@@ -174,7 +239,7 @@ class SauropodDatabase(object):
         meta_data["etags"] = {}
         meta_data["uuid"] = None
         meta_data["last_modified"] = round_time()
-        s.set(meta_key, json.dumps(meta_data), if_match=meta_etag)
+        self._set_cached_metadata(s, user, collection, meta_data, meta_etag)
 
         # Now we can delete the applications that were recorded in
         # the metadata.
@@ -201,7 +266,8 @@ class SauropodDatabase(object):
         s = self._resume_session(token)
         # To get the last-modified time we need only read the meta document.
         try:
-            meta = json.loads(s.get(collection + "::meta"))
+            item = self._get_cached_metadata(s, user, collection)
+            meta = json.loads(item.value)
         except KeyError:
             return None
         return meta.get("uuid", None)
@@ -216,7 +282,8 @@ class SauropodDatabase(object):
         # It might be deleted, or last_modified might be too early.
         # In either case, this lets us bail out before doing any hard work.
         try:
-            meta = json.loads(s.get(collection + "::meta"))
+            item = self._get_cached_metadata(s, user, collection)
+            meta = json.loads(item.value)
         except KeyError:
             return updates
         if meta.get("deleted", False):
@@ -246,9 +313,8 @@ class SauropodDatabase(object):
         s = self._resume_session(token)
         # Load the current metadata state so we can update it when finished.
         # We need it first so we can detect conflicts from concurrent uploads.
-        meta_key = collection + "::meta"
         try:
-            meta = s.getitem(meta_key)
+            meta = self._get_cached_metadata(s, user, collection)
         except KeyError:
             meta_etag = ""
             meta_data = {}
@@ -312,7 +378,9 @@ class SauropodDatabase(object):
         meta_data["last_modified"] = now
         if not meta_data.get("uuid"):
             meta_data["uuid"] = uuid.uuid4().hex
-        s.set(meta_key, json.dumps(meta_data), if_match=meta_etag)
+
+        self._set_cached_metadata(s, user, collection, meta_data, meta_etag)
+
         # Finally, we have completed the writes.
         # Report back if we found some apps that had been changed and
         # could not be overwritten.

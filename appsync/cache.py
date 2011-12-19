@@ -1,6 +1,7 @@
 from pylibmc import Client, NotFound, ThreadMappedPool
 from pylibmc import Error as MemcachedError
 import threading
+import thread
 
 from zope.interface import Interface, implements
 

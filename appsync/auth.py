@@ -35,7 +35,8 @@ def check_auth(request):
 
     if not auth.startswith('AppSync '):
         logger.error('Attempted auth with bad type (not AppSync): %r' % auth)
-        raise HTTPUnauthorized('Invalid token; expected Authorization type AppSync')
+        raise HTTPUnauthorized('Invalid token; expected Authorization type '
+                               'AppSync')
 
     auth = auth[len('AppSync '):].strip()
     auth_part = auth.split(':')
@@ -46,14 +47,16 @@ def check_auth(request):
     try:
         auth_part = [b64dec(part) for part in auth_part]
     except (binascii.Error, ValueError), e:
-        logger.error('Attempted auth with invalid base64 content: %r (%s)' % (auth, e))
+        logger.error('Attempted auth with invalid base64 content'
+                     ': %r (%s)' % (auth, e))
         raise HTTPUnauthorized('Invalid token: invalid base64 encoding')
 
     assertion, username, dbtoken = auth_part
 
     # let's reject the call if the url is not owned by the user
     if user != username:
-        logger.error('Attempted auth for user=%r for collection user=%r' % (username, user))
+        logger.error('Attempted auth for user=%r for collection '
+                     'user=%r' % (username, user))
         raise HTTPUnauthorized('Invalid user')
 
     # need to verify the user signature here
