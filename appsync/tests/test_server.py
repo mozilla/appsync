@@ -1,4 +1,5 @@
 import os
+import shutil
 import unittest
 import time
 import json
@@ -73,6 +74,10 @@ class TestSyncApp(unittest.TestCase):
             filename = sqluri[len('sqlite://'):]
             if os.path.exists(filename):
                 os.remove(filename)
+        backend = self.config.get_settings().get('backend')
+        if backend == 'logdb.syncstorage.SyncStorage':
+            dir = self.config.get_settings().get('dir')
+            shutil.rmtree(dir)
 
     def test_verify(self):
         audience = "http://myapps.mozillalabs.com/"
