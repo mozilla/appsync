@@ -26,6 +26,7 @@ TIMEOUT = 300
 DURATION = 30
 CYCLES = 5:10:20
 HOST = http://localhost:5000
+BIN = ../bin
 
 ifdef PYPIEXTRAS
 	PYPIOPTIONS += -e $(PYPIEXTRAS)
@@ -94,8 +95,8 @@ clean:
 	rm -rf bin lib include local docs/build
 
 loadonce:
-	cd loadtest; ../bin/fl-run-test -u $(HOST) simple.py
+	cd loadtest; $(BIN)/fl-run-test -u $(HOST) simple.py
 
 load:
-	cd loadtest; ../bin/fl-run-bench -u $(HOST) -c $(CYCLES) -D $(DURATION) simple.py SimpleTest.test_something
+	cd loadtest; $(BIN)/fl-run-bench -u $(HOST) -c $(CYCLES) -D $(DURATION) simple.py SimpleTest.test_something
 
