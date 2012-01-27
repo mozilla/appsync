@@ -6,6 +6,8 @@ from zope.interface import implements
 
 from mozsvc.util import round_time
 
+import vep.utils
+
 import pysauropod
 
 from appsync import logger
@@ -130,13 +132,11 @@ class SauropodDatabase(object):
     def _get_userid_from_assertion(self, assertion):
         """Extract the userid from a BrowserID assertion."""
         try:
-            data = json.loads(urlb64decode(assertion))
-        except (ValueError, TypeError):
+            data = vep.utils.get_assertion_info(assertion)
+        except ValueError:
             return assertion
         else:
-            payload = data["certificates"][0].split(".")[1]
-            payload = json.loads(urlb64decode(payload))
-            return payload["principal"]["email"]
+            return data["principal"]["email"]
 
     def _resume_session(self, token):
         """Resume the Sauropod session encoded in the given token."""
