@@ -1,5 +1,5 @@
 APPNAME = appsync
-DEPS = 
+DEPS =
 VIRTUALENV = virtualenv
 PYTHON = $(CURDIR)/bin/python
 NOSE = bin/nosetests -s --with-xunit
@@ -59,7 +59,7 @@ build_mcrypto:
 	cd /tmp; wget $(PYPI2)/source/M/M2Crypto/M2Crypto-0.21.1.tar.gz#md5=f93d8462ff7646397a9f77a2fe602d17
 	cd /tmp && tar -xzvf M2Crypto-0.21.1.tar.gz && cd M2Crypto-0.21.1 && sed -i -e 's/opensslconf\./opensslconf-x86_64\./' SWIG/_ec.i && sed -i -e 's/opensslconf\./opensslconf-x86_64\./' SWIG/_evp.i && SWIG_FEATURES=-cpperraswarn $(PYTHON) setup.py install
 	rm -rf /tmp/M2Crypto*
-	bin/pip install --download-cache=$(PIP_CACHE) PyVEP==0.3.1
+	bin/pip install --ignore-installed --download-cache=$(PIP_CACHE) PyVEP==0.3.1
 	$(BUILDAPP) -t $(TIMEOUT) -c $(CHANNEL) $(PYPIOPTIONS) $(DEPS)
 
 build:
@@ -68,7 +68,7 @@ build:
 	$(INSTALL) nose
 	$(INSTALL) WebTest
 	$(INSTALL) wsgi_intercept
-	bin/pip install --download-cache=$(PIP_CACHE) PyVEP==0.3.1
+	bin/pip install --ignore-installed --download-cache=$(PIP_CACHE) PyVEP==0.3.1
 	$(BUILDAPP) -t $(TIMEOUT) -c $(CHANNEL) $(PYPIOPTIONS) $(DEPS)
 
 update:
@@ -80,7 +80,7 @@ test:
 build_rpms:
 	rm -rf rpms
 	mkdir rpms
-	$(PYPI2RPM) --download-cache=$(PIP_CACHE) PyVEP --version=0.3.1 --dist-dir=$(CURDIR)/rpms
+	$(PYPI2RPM) --ignore-installed --download-cache=$(PIP_CACHE) PyVEP --version=0.3.1 --dist-dir=$(CURDIR)/rpms
 	$(BUILDRPMS) -t $(TIMEOUT) -c $(RPM_CHANNEL) $(DEPS)
 
 mach: build build_rpms
@@ -99,4 +99,3 @@ loadonce:
 
 load:
 	cd loadtest; $(BIN)/fl-run-bench -u $(HOST) -c $(CYCLES) -D $(DURATION) simple.py SimpleTest.test_something
-
