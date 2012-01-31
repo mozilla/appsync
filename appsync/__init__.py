@@ -77,7 +77,7 @@ def main(global_config, **settings):
         config.registry['mock_browserid'] = True
 
     app = config.make_wsgi_app()
-    retry_after = config.settings('global.retry_after', '120')
+    retry_after = config.settings.get('global.retry_after', '120')
     errapp = CatchAuthError(app, retry_after=retry_after)
     errapp.registry = app.registry
     return errapp
