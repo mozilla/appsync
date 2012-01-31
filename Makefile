@@ -86,7 +86,6 @@ build_rpms:
 	cd /tmp && tar -xzvf M2Crypto-0.21.1.tar.gz && cd M2Crypto-0.21.1 && sed -i -e 's/opensslconf\./opensslconf-x86_64\./' SWIG/_ec.i && sed -i -e 's/opensslconf\./opensslconf-x86_64\./' SWIG/_evp.i && SWIG_FEATURES=-cpperraswarn $(PYTHON) setup.py install
 	rm -rf /tmp/M2Crypto*
 	bin/pip install --download-cache=$(PIP_CACHE) PyVEP==0.3.1
-	$(PYPI2RPM) --download-cache=$(PIP_CACHE) PyVEP --version=0.3.1 --dist-dir=$(CURDIR)/rpms
 	$(BUILDRPMS) -t $(TIMEOUT) -c $(RPM_CHANNEL) $(DEPS)
 
 mach: build build_rpms
