@@ -1,7 +1,7 @@
 %define pyver 26
 %define name python%{pyver}-appsync
 %define pythonname appsync
-%define version 0.5
+%define version 0.6
 %define release 1
 
 Summary: App Sync Server.
