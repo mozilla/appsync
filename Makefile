@@ -19,8 +19,10 @@ CHANNEL = dev
 RPM_CHANNEL = dev
 PIP_CACHE = /tmp/pip-cache
 INSTALL = bin/pip install --download-cache=$(PIP_CACHE)
-BUILDAPP = bin/buildapp --download-cache=$(PIP_CACHE)
-BUILDRPMS = bin/buildrpms --download-cache=$(PIP_CACHE)
+# Note: using --force for now because vendor/ gets updates and that
+# will halt the build
+BUILDAPP = bin/buildapp --download-cache=$(PIP_CACHE) --force
+BUILDRPMS = bin/buildrpms --download-cache=$(PIP_CACHE) --force
 INSTALLOPTIONS = -U -i $(PYPI)
 TIMEOUT = 300
 DURATION = 30
@@ -60,9 +62,7 @@ build_mcrypto:
 	cd /tmp && tar -xzvf M2Crypto-0.21.1.tar.gz && cd M2Crypto-0.21.1 && sed -i -e 's/opensslconf\./opensslconf-x86_64\./' SWIG/_ec.i && sed -i -e 's/opensslconf\./opensslconf-x86_64\./' SWIG/_evp.i && SWIG_FEATURES=-cpperraswarn $(PYTHON) setup.py install
 	rm -rf /tmp/M2Crypto*
 	bin/pip install --download-cache=$(PIP_CACHE) PyVEP==0.3.1
-	# Note: using --force for now because vendor/ gets updates and that will halt the
-	# build
-	$(BUILDAPP) --force -t $(TIMEOUT) -c $(CHANNEL) $(PYPIOPTIONS) $(DEPS)
+	$(BUILDAPP) -t $(TIMEOUT) -c $(CHANNEL) $(PYPIOPTIONS) $(DEPS)
 
 build:
 	$(VIRTUALENV) --no-site-packages --distribute .
@@ -71,10 +71,10 @@ build:
 	$(INSTALL) WebTest
 	$(INSTALL) wsgi_intercept
 	$(INSTALL) PyVEP==0.3.1
-	$(BUILDAPP) --force -t $(TIMEOUT) -c $(CHANNEL) $(PYPIOPTIONS) $(DEPS)
+	$(BUILDAPP) -t $(TIMEOUT) -c $(CHANNEL) $(PYPIOPTIONS) $(DEPS)
 
 update:
-	$(BUILDAPP) --force -t $(TIMEOUT) -c $(CHANNEL) $(PYPIOPTIONS) $(DEPS)
+	$(BUILDAPP) -t $(TIMEOUT) -c $(CHANNEL) $(PYPIOPTIONS) $(DEPS)
 
 test:
 	$(NOSE) $(TESTS)
