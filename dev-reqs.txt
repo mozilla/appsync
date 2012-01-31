@@ -33,3 +33,4 @@ pylibmc==1.2.2
 requests==0.8.3
 PyMySQL==0.5
 pymysql_sa==1.0
+PyVEP==0.3.1
