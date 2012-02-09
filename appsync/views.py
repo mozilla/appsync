@@ -178,6 +178,8 @@ def get_data(request):
             apps.append(app)
 
         res['applications'] = apps
+        if not until:
+            until = since
         res['until'] = until
 
     except CollectionDeletedError, e:
